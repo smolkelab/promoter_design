@@ -1,0 +1,1 @@
+time python FS8_nextseq_merge_reads.py FS8_merged_reads_final_nextseq.txt 30 FS8_nextseq_merged_reads.csv
