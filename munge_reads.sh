@@ -1,1 +1,0 @@
-python munge_reads.py FS8_nextseq_merged_reads.csv FS8_nextseq_munged_reads.csv 20

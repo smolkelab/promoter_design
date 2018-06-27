@@ -20,10 +20,6 @@ def timer(text, mark):
 
 import hgbrian_GPU_NW
 
-MAX_GAPS = 5
-CHUNK_SIZE = 50000
-NEW_CLUSTER_THRESH = 197 # see ~/Dropbox/Lab/Data/2018-01 for a histogram of NW selection thresholds with settings as in hgbrian_GPU_NW_score_test.py
-
 def affix_read_id(file_in, file_out):
   read_id = 0
   with open(file_in) as fi, open(file_out,'w') as fo:
@@ -35,8 +31,8 @@ def affix_read_id(file_in, file_out):
 # Associate each read with an ID number and a cluster number. (NB: there may be other fields already - preserve these, append new fields to the end of the line.)
 # But assume CSV lines.
 # Compare each read to the immediately following read.
-def group_adjacent_reads(file_in, file_out, file_tmp, has_seq_and_bin, score_file):
-  hgbrian_GPU_NW.score_file(file_in, file_tmp, max_gaps = MAX_GAPS, chunk_size = CHUNK_SIZE)
+def group_adjacent_reads(file_in, file_out, file_tmp, has_seq_and_bin, score_file, max_gaps, chunk_size, new_cluster_thresh, threads_per_block):
+  hgbrian_GPU_NW.score_file(file_in, file_tmp, max_gaps, chunk_size, threads_per_block)
 
   cluster_id = 0
   #read_id = 0
@@ -57,7 +53,7 @@ def group_adjacent_reads(file_in, file_out, file_tmp, has_seq_and_bin, score_fil
       try:
         score = float(fs.next())
         f_scores.write(str(score) + '\n')
-        if score < NEW_CLUSTER_THRESH:
+        if score < new_cluster_thresh:
           cluster_id += 1 # <- update the cluster_id of the next read, if needed
       except StopIteration: # originally just had a 'pass', which allowed too-short distance files to be accepted.
         if last_line_found:
@@ -94,7 +90,7 @@ def merge_grouped_reads(file_1, file_2, file_out):
       line_out = ','.join(x)
       fo.write("%s\n" % line_out)
 
-def main_method(file_in, dir_intermed, file_out, file_idd, file_scores_fwd, file_scores_rev):
+def main_method(file_in, dir_intermed, file_out, file_idd, file_scores_fwd, file_scores_rev, max_gaps, chunk_size, new_cluster_thresh, threads_per_block):
   # affix read IDs; file_in has fields (seq, bin)
   # file_idd is provided, as it'll be needed later
   t = time()
@@ -105,7 +101,7 @@ def main_method(file_in, dir_intermed, file_out, file_idd, file_scores_fwd, file
   t = time()
   file_tmp = os.path.join(dir_intermed, file_in + '_fwd_group_tmp')
   file_fwd = os.path.join(dir_intermed, file_in + '_fwd_group')
-  group_adjacent_reads(file_idd, file_fwd, file_tmp, True, file_scores_fwd) # read_id, fwd_cluster_id
+  group_adjacent_reads(file_idd, file_fwd, file_tmp, True, file_scores_fwd, max_gaps, chunk_size, new_cluster_thresh, threads_per_block) # read_id, fwd_cluster_id
   timer('Forward grouping',t)
 
   # reverse and resort the original file
@@ -118,14 +114,10 @@ def main_method(file_in, dir_intermed, file_out, file_idd, file_scores_fwd, file
   t = time()
   file_tmp = os.path.join(dir_intermed, file_in + '_rev_group_tmp')
   file_rev = os.path.join(dir_intermed, file_in + '_rev_group')
-  group_adjacent_reads(file_reversed, file_rev, file_tmp, True, file_scores_rev) # read_id, rev_cluster_id
+  group_adjacent_reads(file_reversed, file_rev, file_tmp, True, file_scores_rev, max_gaps, chunk_size,new_cluster_thresh, threads_per_block) # read_id, rev_cluster_id
   timer('Reverse grouping',t)
 
   # merge the group files; file_out has fields (read_id, fwd_group, rev_group)
   t = time()
   merge_grouped_reads(file_fwd, file_rev, file_out)
   timer('Resort forward and reverse groups',t)
-
-if __name__ == '__main__':
-  [file_in, dir_intermed, file_out] = sys.argv[1:]
-  main_method(file_in, dir_intermed, file_out)

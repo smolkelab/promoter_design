@@ -75,6 +75,8 @@ def merge_all(dir_in, fn_out):
 def filter_lengths(fn_in, fn_out, seq_len, left_only = False):
   if left_only == 'True':
     left_only = True
+  else:
+    left_only = False
   with open(fn_in, 'r') as fi, open(fn_out, 'w') as fo:
     for l in fi:
       if left_only:

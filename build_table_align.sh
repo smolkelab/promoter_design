@@ -1,0 +1,1 @@
+nohup python build_table_align.py build_table_align.cfg > build_table_align.log &
