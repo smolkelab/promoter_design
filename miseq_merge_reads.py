@@ -13,7 +13,7 @@ import read_merge_connected_components
 def timer(text, mark):
   print(text + ': ' + "{:.3g}".format(time.time() - mark))
 
-def main_method(file_in_dir, file_in, dir_intermed, file_out, file_scores_fwd, file_scores_rev):
+def main_method(file_in, dir_intermed, file_out, file_scores_fwd, file_scores_rev):
   # generate a group file with fields (read_id, fwd_group, rev_group)
   file_idd = os.path.join(dir_intermed, file_in + '_id') #seq, bin, read_id
   file_orig_groups = os.path.join(dir_intermed, file_in + '_orig_groups') #read_id, fwd_id, rev_id
@@ -24,9 +24,9 @@ def main_method(file_in_dir, file_in, dir_intermed, file_out, file_scores_fwd, f
   file_group_list = os.path.join(dir_intermed, file_in + '_group_list')
   # output a final file, with fields (seq, bin, final_group)
   group_start = time.time()
-  read_merge_connected_components.main_method(file_idd, file_orig_groups,file_group_list, os.path.join(file_in_dir, file_out))
+  read_merge_connected_components.main_method(file_idd, file_orig_groups,file_group_list, file_out)
   timer('Grouping runtime', group_start)
 
 if __name__=='__main__':
-  [file_in_dir, file_in, dir_intermed, file_out, file_scores_fwd, file_scores_rev] = sys.argv[1:]
-  main_method(file_in_dir, file_in, dir_intermed, file_out, file_scores_fwd, file_scores_rev)
+  [file_in, dir_intermed, file_out, file_scores_fwd, file_scores_rev] = sys.argv[1:]
+  main_method(file_in, dir_intermed, file_out, file_scores_fwd, file_scores_rev)
