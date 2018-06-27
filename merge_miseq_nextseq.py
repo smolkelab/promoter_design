@@ -4,6 +4,7 @@
 # eliminate ambiguous sequences: all inputs in NextSeq will be unique,
 # but multiples in MiSeq need to be dropped as they are found
 import sys
+import ConfigParser
 
 class LineJoiner(object):
 
@@ -71,8 +72,13 @@ def main(fn_miseq, fn_nextseq, fn_out, req_len):
   return(joiner.misses, joiner.drops, joiner.hits)
 
 if __name__ == '__main__':
-  fn_miseq, fn_nextseq, fn_out, req_len = sys.argv[1:]
-  req_len = int(req_len)
+  config = ConfigParser.RawConfigParser(allow_no_value=True)
+  config.read(sys.argv[1])
+
+  fn_miseq = config.get('Input','file_miseq')
+  fn_nextseq = config.get('Input','file_nextseq')
+  fn_out = config.get('Output','file_out')
+  req_len = int(config.get('Params','REQ_LEN'))
   misses, drops, hits = main(fn_miseq, fn_nextseq, fn_out, req_len)
   print('Misses: ' + str(misses))
   print('Drops: ' + str(drops))

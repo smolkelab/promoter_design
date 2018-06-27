@@ -1,1 +1,1 @@
-python get_fastq.py
+python get_fastq.py get_fastq.cfg

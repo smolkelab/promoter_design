@@ -1,1 +1,1 @@
-nohup python runpear.py > pear.log &
+nohup python runpear.py runpear.cfg > pear.log &
