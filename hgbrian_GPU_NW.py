@@ -13,8 +13,6 @@ import sys
 import copy
 from multiprocessing import Process, Pipe
 
-# Running on a 960M GPU: CC 5.0, 32 blocks, 2048 threads per SM; not using shared memory so don't have to optimize that. 64 threads per block should give full occupany; 32 T.P.B. would be 50%.
-THREADS_PER_BLOCK = 64 
 A_SMALL_FLOAT = -100000.
 
 # Constant matrices for DNA-to-integer conversion
@@ -100,20 +98,6 @@ def _convert_dna_to_array(dnastr, max_len):
     ans[i] = NTDICT[dnastr[i]]
   return(ans)
 
-def hgbrian_nw_score_wrapper(seqs, max_gaps):
-  local_size = 2*max_gaps + 1
-  ks_formatted = KERNEL_STR.format(max_gaps = str(max_gaps), local_size = str(local_size), gap = -5, match = 1, mismatch = 0, N = str(N_VAL))
-  exec(ks_formatted)
-  len_arr = np.array([len(q) for q in seqs])
-  max_len = np.max(len_arr)
-  scores = np.zeros(shape = len(seqs) - 1, dtype = 'float')
-  cuda.to_device(seqs_arr)
-  cuda.to_device(len_arr)
-  cuda.to_device(scores)
-  blockspergrid = (len(seqs) + (THREADS_PER_BLOCK - 1)) // THREADS_PER_BLOCK
-  hgbrian_score_kernel[blockspergrid, THREADS_PER_BLOCK](seqs_arr, len_arr, scores)
-  return(scores)
-
 def seq_to_list(seq, max_len):
   seq = [ord(q) for q in seq]
   seq.extend([0]*(max_len - len(seq)))
@@ -162,7 +146,7 @@ def seqs_to_arrays_triplicate_wrapper(chunk, max_len):
 # Approach: iteratively read lines from file_in; pass them as conveniently-sized blocks
 # to the device and invoke the kernel to align them.
 # Written for clarity, not perfect I/O efficiency - CPU-bound preprocessing is bottleneck for me.
-def score_file(file_in, file_out, max_gaps, chunk_size, gap = -5, match = 1, mismatch = 0):
+def score_file(file_in, file_out, max_gaps, chunk_size, threads_per_block, gap = -5, match = 1, mismatch = 0):
   local_size = 2*max_gaps + 1
   ks_formatted = KERNEL_STR.format(max_gaps = str(max_gaps), local_size = str(local_size), gap = gap, match = match, mismatch = mismatch, N = str(N_VAL))
   exec(ks_formatted)
@@ -198,8 +182,8 @@ def score_file(file_in, file_out, max_gaps, chunk_size, gap = -5, match = 1, mis
       len_arr_shared = np.copy(len_arr_local)
       scores_shared = np.copy(scores_local)
       seqs_arr_shared, len_arr_shared, scores_shared = cuda.to_device(seqs_arr_shared, stream = stream), cuda.to_device(len_arr_shared, stream = stream), cuda.to_device(scores_shared, stream = stream)
-      blockspergrid = (seqs_arr_shared.shape[0] + (THREADS_PER_BLOCK - 1)) // THREADS_PER_BLOCK
-      hgbrian_score_kernel[blockspergrid, THREADS_PER_BLOCK, stream](seqs_arr_shared, len_arr_shared, scores_shared)
+      blockspergrid = (seqs_arr_shared.shape[0] + (threads_per_block - 1)) // threads_per_block
+      hgbrian_score_kernel[blockspergrid, threads_per_block, stream](seqs_arr_shared, len_arr_shared, scores_shared)
       stream.synchronize() # <- if the kernel was more time-intensive, we could revise this to do preprocessing while the kernel runs - makes bookkeeping to get the output back nontrivial and bug-prone though.
 
       # Copy the results to host, and write them

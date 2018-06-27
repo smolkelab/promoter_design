@@ -1,1 +1,0 @@
-time python mean_fitting_likelihood_cuda.py FS8_miseq_munged_reads.txt munged_means_config_A.txt munged_means_config_B.txt rough_means.txt

@@ -4,6 +4,8 @@ import sys
 import os
 import numpy as np
 import pandas
+import ConfigParser
+import munge_reads
 
 class read_tracker(object):
 
@@ -46,10 +48,14 @@ def process_one_file(fn, n_bins):
   return(reads)
 
 if __name__ == '__main__':
+  config = ConfigParser.RawConfigParser(allow_no_value=True)
+  config.read(sys.argv[1])
+  in_file = config.get('Input', 'in_file')
+  n_bins = int(config.get('Params','N_BINS'))
+  thresh = int(config.get('Params','THRESH'))
+  raw_file = config.get('Files_Intermediate', 'raw_read_table')
+  out_file = config.get('Output', 'out_file')
   print('Scanning read file\n')
-  in_file = sys.argv[1]
-  n_bins = int(sys.argv[2])
-  out_file = sys.argv[3]
   reads = process_one_file(in_file, n_bins)
 
   print('Extracting output\n')
@@ -60,4 +66,6 @@ if __name__ == '__main__':
   for i in range(ans_cts.shape[1]):
     dict_out[str(i)] = ans_cts[:,i]
   df_out = pandas.DataFrame(dict_out)
-  df_out.to_csv(out_file)
+  df_out.to_csv(raw_file)
+
+  munge_reads.main(raw_file, out_file, thresh)
