@@ -94,11 +94,11 @@ def merge_grouped_reads(file_1, file_2, file_out):
       line_out = ','.join(x)
       fo.write("%s\n" % line_out)
 
-def main_method(file_in_dir, file_in, dir_intermed, file_out, file_idd, file_scores_fwd, file_scores_rev):
+def main_method(file_in, dir_intermed, file_out, file_idd, file_scores_fwd, file_scores_rev):
   # affix read IDs; file_in has fields (seq, bin)
   # file_idd is provided, as it'll be needed later
   t = time()
-  affix_read_id(os.path.join(file_in_dir, file_in), file_idd)
+  affix_read_id(file_in, file_idd)
   timer('Affix read ID',t)
 
   # get the forward grouping
