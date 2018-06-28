@@ -15,13 +15,14 @@ def main_method(file_in, dir_intermed, cluster_output, file_scores_fwd, file_sco
     max_gaps, chunk_size, new_cluster_thresh, threads_per_block,
     file_cleaned, file_aln, file_N, file_ambig, len_aln, n_lines, num_bins):
   # generate a group file with fields (read_id, fwd_group, rev_group)
-  file_idd = os.path.join(dir_intermed, file_in + '_id') #seq, bin, read_id
-  file_orig_groups = os.path.join(dir_intermed, file_in + '_orig_groups') #read_id, fwd_id, rev_id
+  file_in_stub = file_in.split('/')[-1]
+  file_idd = os.path.join(dir_intermed, file_in_stub + '_id') #seq, bin, read_id
+  file_orig_groups = os.path.join(dir_intermed, file_in_stub + '_orig_groups') #read_id, fwd_id, rev_id
   merge_start = time.time()
-  read_merge.main_method(file_in_dir, file_in, dir_intermed, file_orig_groups, file_idd, file_scores_fwd, file_scores_rev, max_gaps, chunk_size, new_cluster_thresh, threads_per_block)
+  read_merge.main_method(file_in, dir_intermed, file_orig_groups, file_idd, file_scores_fwd, file_scores_rev, max_gaps, chunk_size, new_cluster_thresh, threads_per_block)
   timer('Merge runtime', merge_start)
   # use connected components to generate a file whose lines are comma-separated lists of grouped reads
-  file_group_list = os.path.join(dir_intermed, file_in + '_group_list')
+  file_group_list = os.path.join(dir_intermed, file_in_stub + '_group_list')
   # output a final file, with fields (seq, bin, final_group)
   group_start = time.time()
   read_merge_connected_components.main_method(file_idd, file_orig_groups,file_group_list, cluster_output)

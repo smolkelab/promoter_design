@@ -95,26 +95,27 @@ def main_method(file_in, dir_intermed, file_out, file_idd, file_scores_fwd, file
   # file_idd is provided, as it'll be needed later
   t = time()
   affix_read_id(file_in, file_idd)
+  file_in_stub = file_in.split('/')[-1]
   timer('Affix read ID',t)
 
   # get the forward grouping
   t = time()
-  file_tmp = os.path.join(dir_intermed, file_in + '_fwd_group_tmp')
-  file_fwd = os.path.join(dir_intermed, file_in + '_fwd_group')
+  file_tmp = os.path.join(dir_intermed, file_in_stub + '_fwd_group_tmp')
+  file_fwd = os.path.join(dir_intermed, file_in_stub + '_fwd_group')
   group_adjacent_reads(file_idd, file_fwd, file_tmp, True, file_scores_fwd, max_gaps, chunk_size, new_cluster_thresh, threads_per_block) # read_id, fwd_cluster_id
   timer('Forward grouping',t)
 
   # reverse and resort the original file
   t = time()
-  file_reversed = os.path.join(dir_intermed, file_in + '_id_reversed')
+  file_reversed = os.path.join(dir_intermed, file_in_stub + '_id_reversed')
   reverse_and_resort(file_idd, file_reversed) # reversed_seq, bin, read_id
   timer('Reverse and resort',t)
 
   # get the reverse grouping
   t = time()
-  file_tmp = os.path.join(dir_intermed, file_in + '_rev_group_tmp')
-  file_rev = os.path.join(dir_intermed, file_in + '_rev_group')
-  group_adjacent_reads(file_reversed, file_rev, file_tmp, True, file_scores_rev, max_gaps, chunk_size,new_cluster_thresh, threads_per_block) # read_id, rev_cluster_id
+  file_tmp = os.path.join(dir_intermed, file_in_stub + '_rev_group_tmp')
+  file_rev = os.path.join(dir_intermed, file_in_stub + '_rev_group')
+  group_adjacent_reads(file_reversed, file_rev, file_tmp, True, file_scores_rev, max_gaps, chunk_size, new_cluster_thresh, threads_per_block) # read_id, rev_cluster_id
   timer('Reverse grouping',t)
 
   # merge the group files; file_out has fields (read_id, fwd_group, rev_group)
