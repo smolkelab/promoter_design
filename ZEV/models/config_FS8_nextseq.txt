@@ -1,0 +1,22 @@
+[Files]
+means = means_trainable.csv
+train = FS8_train
+valid = FS8_valid
+test = FS8_test
+start_weights = None
+pretrained_weights = None
+model_output = weights_asFS7
+preds = preds_asFS7.csv
+script = do_model.py
+
+[Params]
+val_frac = 0.1
+test_frac = 0.1
+pad_size = 25
+random_seed = 2017
+pad_left = AGAATACGTAAATAATTAATAGTAGTGAC
+pad_right = TGTCTAAAGGTGAAGAATTATTCA
+num_pretrained_layers = 0
+
+[Mode]
+do_train = True

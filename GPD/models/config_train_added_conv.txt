@@ -1,0 +1,23 @@
+[Files]
+means = FS7_means_trainable.csv
+train = FS7_train
+valid = FS7_valid
+test = FS7_test
+start_weights = None
+pretrained_weights = weights_huber_tuned
+model_output = weights_huber_tuned_added_conv
+preds = preds_finetuned_added_conv.csv
+script = do_model.py
+
+[Params]
+val_frac = 0.1
+test_frac = 0.1
+pad_size = 25
+random_seed = 2017
+pad_left = AGAATACGTAAATAATTAATAGTAGTGAC
+pad_right = TGTCTAAAGGTGAAGAATTATTCA
+n_thermal = 0
+num_pretrained_layers = 13
+
+[Mode]
+do_train = True
