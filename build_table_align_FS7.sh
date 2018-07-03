@@ -1,1 +1,0 @@
-nohup python build_table_align.py build_table_align_FS7.cfg > ../facs-seq_test/build_table_align.log &

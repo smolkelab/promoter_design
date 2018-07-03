@@ -1,1 +1,0 @@
-nohup python merge_miseq_nextseq.py merge_miseq_nextseq.cfg > merge.log &

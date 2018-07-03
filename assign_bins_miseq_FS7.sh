@@ -1,1 +1,0 @@
-nohup python fastq_to_bin.py assign_bins_miseq_FS7.cfg > ../facs-seq_test/assign_bins_miseq.log &
