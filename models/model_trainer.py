@@ -9,29 +9,39 @@ import ConfigParser
 import do_model
 import scipy.stats as ss
 
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+DNA = ['A','C','G','T']
 
-#def one_hot_encode(sequences):
-#    sequence_length = len(sequences[0])
-#    integer_type = np.int8 if sys.version_info[
-#        0] == 2 else np.int32  # depends on Python version
-#    integer_array = LabelEncoder().fit(np.array(('ACGTN',)).view(integer_type)).transform(
-#        sequences.view(integer_type)).reshape(len(sequences), sequence_length)
-#    one_hot_encoding = OneHotEncoder(
-#        sparse=False, n_values=5).fit_transform(integer_array)
-#    return one_hot_encoding.reshape(len(sequences), 1, sequence_length, 5).swapaxes(2, 3)[:, :, [0, 1, 2, 4], :]
+def one_hot_encode(sequences):
+  dna_dict = {}
+  for i,q in enumerate(DNA):
+    dna_dict[q] = i
+  def _encode_one(seq, dna_dict):
+    ans = np.zeros(shape=(len(DNA), len(seq)), dtype = 'int')
+    for i,q in enumerate(seq):
+      ans[i, dna_dict[q]] = 1
+  ans = [_encode_one(q, dna_dict) for q in sequences]
+  return(np.stack(ans, axis = 0))
+
+def de_onehot(seq_arr):
+  x = np.argmax(seq_arr, axis = 1)
+  seqs = []
+  for i in x:
+    seq = ''.join([DNA[q] for q in i])
+    seqs.append(seq)
+  return(seqs)
+
 def main_method(config):
 
   #######################################################################################
   #Preprocessing
   #######################################################################################
-  filename = config.get('Files', 'means')
+  filename = os.path.expanduser(config.get('Files', 'means'))
   val_frac = float(config.get('Params', 'val_frac'))
   test_frac = float(config.get('Params', 'test_frac'))
   random_seed = int(config.get('Params', 'random_seed'))
-  train_file = config.get('Files', 'train')
-  valid_file = config.get('Files', 'valid')
-  test_file = config.get('Files', 'test')
+  train_file = os.path.expanduser(config.get('Files', 'train'))
+  valid_file = os.path.expanduser(config.get('Files', 'valid'))
+  test_file = os.path.expanduser(config.get('Files', 'test'))
 
   train_file, valid_file, test_file = [q + '_' + str(random_seed) for q in [train_file, valid_file, test_file]]
 
@@ -68,7 +78,6 @@ def main_method(config):
     train_sequences, test_sequences, y_train_val, y_test_val = train_test_split(X, y, test_size=test_set_size)
     if random_seed > 0:
       random.seed(random_seed); np.random.seed(random_seed)
-
     train_sequences, valid_sequences, y_train_val, y_valid_val = train_test_split(train_sequences, y_train_val, test_size=validation_set_size)
 
     X_train = one_hot_encode(train_sequences).squeeze()  # get rid of the unwanted extra dimension
@@ -86,6 +95,7 @@ def main_method(config):
     X_train = np.load(train_file + '.npy')
     X_valid = np.load(valid_file + '.npy')
     X_test = np.load(test_file + '.npy')
+	test_sequences = de_onehot(X_test)
     y_train_val = np.load(train_file + '_y.npy')
     y_valid_val = np.load(valid_file + '_y.npy')
     y_test_val = np.load(test_file + '_y.npy')
@@ -97,7 +107,7 @@ def main_method(config):
   #Train the model
   #######################################################################################
   do_train = config.get('Mode', 'do_train').strip() == 'True'
-  filename_sim = config.get('Files', 'model_output')
+  filename_sim = os.path.expanduser(config.get('Files', 'model_output'))
 
   sim = do_model.do_model(dat_to_use_all, num_outputs, train = do_train)
 
@@ -116,14 +126,15 @@ def main_method(config):
 
   preds = sim.predict(X_test[...,0:X_test.shape[2]-do_model.SHIFT+1]).squeeze()
   if num_outputs == 1:
-    output = {'Means': y_test_val.squeeze(), 'Preds':preds}
+    output = {'Seqs': test_sequences, 'Means': y_test_val.squeeze(), 'Preds':preds}
   else:
-    output = {'Means_A': y_test_val[:,0].squeeze(),
+    output = {'Seqs': test_sequences, 
+	          'Means_A': y_test_val[:,0].squeeze(),
               'Means_B': y_test_val[:,1].squeeze(),
               'Preds_A': preds[:,0].squeeze(),
               'Preds_B': preds[:,1].squeeze()}    
 
-  pandas.DataFrame(output).to_csv(config.get('Files','preds'))
+  pandas.DataFrame(output).to_csv(os.path.expanduser(config.get('Files','preds')))
 
 if __name__ == '__main__':
   config = ConfigParser.RawConfigParser()
