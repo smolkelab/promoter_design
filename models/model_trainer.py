@@ -16,9 +16,10 @@ def one_hot_encode(sequences):
   for i,q in enumerate(DNA):
     dna_dict[q] = i
   def _encode_one(seq, dna_dict):
-    ans = np.zeros(shape=(len(DNA), len(seq)), dtype = 'int')
+    ans = np.zeros(shape=(len(seq), len(DNA)), dtype = 'int')
     for i,q in enumerate(seq):
       ans[i, dna_dict[q]] = 1
+    return(ans)
   ans = [_encode_one(q, dna_dict) for q in sequences]
   return(np.stack(ans, axis = 0))
 
@@ -48,14 +49,13 @@ def main_method(config):
   if not all([os.path.isfile(q + '.npy') for q in [train_file, valid_file, test_file]]):
 
     pre_text, post_text = (config.get('Params', 'pad_left'), config.get('Params', 'pad_right'))
-
-    alldat = pandas.read_csv(filename, sep = ',', header=None)
+    alldat = pandas.read_csv(filename, sep = ',')
     X = np.array([ pre_text + q + post_text for q in np.array(alldat['Seq']) ])
-	output_names = [q for q in list(alldat) if q != 'Seq']
-	output_names.sort()
+    output_names = [q for q in list(alldat) if q != 'Seq']
+    output_names.sort()
     y = np.array([alldat[q] for q in output_names])
-	num_outputs = y.shape[1]
-	
+    y = np.swapaxes(y, 0, 1)
+
     test_set_size = np.floor(len(X)*test_frac).astype(int)
     validation_set_size = np.floor(len(X)*val_frac).astype(int)
 
@@ -66,9 +66,9 @@ def main_method(config):
       random.seed(random_seed); np.random.seed(random_seed)
     train_sequences, valid_sequences, y_train_val, y_valid_val = train_test_split(train_sequences, y_train_val, test_size=validation_set_size)
 
-    X_train = one_hot_encode(train_sequences).squeeze()  # get rid of the unwanted extra dimension
-    X_valid = one_hot_encode(valid_sequences).squeeze()
-    X_test  = one_hot_encode(test_sequences).squeeze()
+    X_train = one_hot_encode(train_sequences)
+    X_valid = one_hot_encode(valid_sequences)
+    X_test  = one_hot_encode(test_sequences)
     np.save(train_file, X_train)
     np.save(valid_file, X_valid)
     np.save(test_file, X_test)
@@ -81,20 +81,20 @@ def main_method(config):
     X_train = np.load(train_file + '.npy')
     X_valid = np.load(valid_file + '.npy')
     X_test = np.load(test_file + '.npy')
-	test_sequences = de_onehot(X_test)
+    test_sequences = de_onehot(X_test)
     y_train_val = np.load(train_file + '_y.npy')
     y_valid_val = np.load(valid_file + '_y.npy')
     y_test_val = np.load(test_file + '_y.npy')
     print('Datasets loaded.')
 
-  dat_to_use_all = [[X_train, y_train_val],[X_valid, y_valid_val], [X_test, y_test_val], X_train.shape[2]]
+  dat_to_use_all = [[X_train, y_train_val],[X_valid, y_valid_val], [X_test, y_test_val], X_train.shape[1]]
 
   #######################################################################################
   #Train the model
   #######################################################################################
   do_train = config.get('Mode', 'do_train').strip() == 'True'
   filename_sim = os.path.expanduser(config.get('Files', 'model_output'))
-
+  num_outputs = y_test_val.shape[1]
   sim = do_model.do_model(dat_to_use_all, num_outputs, train = do_train)
 
   if do_train:
@@ -114,11 +114,11 @@ def main_method(config):
   output = {'Seqs': test_sequences}
   for i,q in enumerate(output_names):
     output[i] = y_test_val[i,:].squeeze()
-	output['Pred_' + i] = preds[i,:].squeeze()
+    output['Pred_' + i] = preds[i,:].squeeze()
 
   pandas.DataFrame(output).to_csv(os.path.expanduser(config.get('Files','preds')))
 
 if __name__ == '__main__':
   config = ConfigParser.RawConfigParser()
   config.read(sys.argv[1])
-  sim, preds = main_method(config, True)
+  sim, preds = main_method(config)

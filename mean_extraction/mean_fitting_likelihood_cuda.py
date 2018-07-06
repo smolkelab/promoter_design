@@ -242,4 +242,4 @@ if __name__ == '__main__':
   global_ests = [q[1] for q in mg_list]
   print('global_ests: ' + str(global_ests))
   out = pandas.DataFrame({'Seqs': seqs, 'Means_A': means[0], 'Means_B':means[1]})
-  out.to_csv(os.path.expanduser(config.get('Output','out_file')))
+  out.to_csv(os.path.expanduser(config.get('Output','out_file')), index = False)

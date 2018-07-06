@@ -1,3 +1,4 @@
+mkdir -p ~/facs-seq_test/GPD
 nohup ./GPD/miseq/assign_bins_miseq_GPD.sh >> ~/facs-seq_test/GPD/master.log &
 nohup ./GPD/miseq/build_table_align_GPD.sh >> ~/facs-seq_test/GPD/master.log &
 nohup ./GPD/nextseq/assign_bins_nextseq_GPD.sh >> ~/facs-seq_test/GPD/master.log &

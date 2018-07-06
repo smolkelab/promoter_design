@@ -1,18 +1,12 @@
-from keras.models import Sequential, Model
-from keras.callbacks import Callback, EarlyStopping, TensorBoard
-from keras.layers.core import (
-    Activation, Dense, Dropout, Flatten,
-    Permute, Reshape)
+from keras.models import Sequential
+from keras.callbacks import EarlyStopping
+from keras.layers.core import Activation, Dense, Dropout, Flatten, Reshape
 from keras.layers.convolutional import Convolution1D
-from keras.layers.pooling import MaxPooling1D, AveragePooling1D
-from keras.layers.recurrent import GRU, SimpleRNN, LSTM
-from keras.layers.wrappers import Bidirectional, TimeDistributed
-from keras.regularizers import l1, l2
-from keras.layers.advanced_activations import LeakyReLU, PReLU
+from keras.layers.pooling import MaxPooling1D
+from keras.regularizers import l2
 from keras.optimizers import Adam
 from keras.layers.normalization import BatchNormalization
-from keras.layers import Input, concatenate, Lambda, LocallyConnected1D
-from keras.layers import GlobalAveragePooling1D
+from keras.layers import InputLayer
 from keras import backend as K
 from keras.initializers import RandomNormal
 import numpy as np
@@ -27,22 +21,21 @@ def huber_loss(y_true, y_pred):
   return( 0.5*K.square(quad) + d*(x - quad) )
 
 def shifting_batch_generator(dataset_X, dataset_y, batch_size, shift):
-  window_size = dataset_X.shape[2] - shift + 1
+  window_size = dataset_X.shape[1] - shift + 1
   while True:
     X_out = []
     y_out = []
     for i in range(batch_size):
       sample_id = np.random.random_integers(0,dataset_X.shape[0]-1)
       offset = np.random.random_integers(0, shift-1)
-      X_out.append(dataset_X[sample_id,:,offset:offset+window_size])
+      X_out.append(dataset_X[sample_id,offset:offset+window_size,:])
       y_out.append(dataset_y[sample_id])
-
     yield((np.stack(X_out,0), np.stack(y_out,0)))
 
 def do_model(dat_to_use, num_outputs, train = True):
-
+  print(dat_to_use[0][0].shape)
+  print(dat_to_use[0][1].shape)
   shift = SHIFT
-
   batch_size = 128
 
   def add_conv(model):
@@ -53,8 +46,9 @@ def do_model(dat_to_use, num_outputs, train = True):
     return(model)
 
   model = Sequential()
-  input_shape = (4, dat_to_use[3] - shift + 1)
-  model.add(Permute((2,1), input_shape = input_shape))
+  input_shape = (dat_to_use[3] - shift + 1, 4)
+  print(input_shape)
+  model.add(InputLayer(batch_input_shape=(None,) + input_shape))
   for i in range(6):
     model = add_conv(model)
   model.add(Flatten())
