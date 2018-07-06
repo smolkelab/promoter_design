@@ -50,26 +50,12 @@ def main_method(config):
     pre_text, post_text = (config.get('Params', 'pad_left'), config.get('Params', 'pad_right'))
 
     alldat = pandas.read_csv(filename, sep = ',', header=None)
-    y_a = np.array(alldat[2])
-    y_b = np.array(alldat[3])
-    y = np.stack([y_a, y_b], axis = 1)
-	num_outputs = int(config.get('Params','num_outputs'))
-	assert(num_outputs in [1,2])
-	if num_outputs == 1:
-	  y = np.apply_along_axis(np.mean, 1, y)
-	  y_min = float(config.get('Params','y_min'))
-	  y_max = float(config.get('Params','y_max'))
-	  useable = np.logical_and(y > y_min, y < y_max)
-	else:
-	  y_a_min = float(config.get('Params','y_a_min'))
-	  y_a_max = float(config.get('Params','y_a_max'))
-	  y_b_min = float(config.get('Params','y_b_min'))
-	  y_b_max = float(config.get('Params','y_b_max'))
-	  useable = np.logical_and(np.logical_and(y_a > y_a_min, y_a < y_a_max), np.logical_and(y_b > y_b_min, y_b < y_b_max))
     X = np.array([ pre_text + q + post_text for q in np.array(alldat['Seq']) ])
-    X = X[useable]
-    y = y[useable,...]
-
+	output_names = [q for q in list(alldat) if q != 'Seq']
+	output_names.sort()
+    y = np.array([alldat[q] for q in output_names])
+	num_outputs = y.shape[1]
+	
     test_set_size = np.floor(len(X)*test_frac).astype(int)
     validation_set_size = np.floor(len(X)*val_frac).astype(int)
 
@@ -125,14 +111,10 @@ def main_method(config):
   #######################################################################################
 
   preds = sim.predict(X_test[...,0:X_test.shape[2]-do_model.SHIFT+1]).squeeze()
-  if num_outputs == 1:
-    output = {'Seqs': test_sequences, 'Means': y_test_val.squeeze(), 'Preds':preds}
-  else:
-    output = {'Seqs': test_sequences, 
-	          'Means_A': y_test_val[:,0].squeeze(),
-              'Means_B': y_test_val[:,1].squeeze(),
-              'Preds_A': preds[:,0].squeeze(),
-              'Preds_B': preds[:,1].squeeze()}    
+  output = {'Seqs': test_sequences}
+  for i,q in enumerate(output_names):
+    output[i] = y_test_val[i,:].squeeze()
+	output['Pred_' + i] = preds[i,:].squeeze()
 
   pandas.DataFrame(output).to_csv(os.path.expanduser(config.get('Files','preds')))
 

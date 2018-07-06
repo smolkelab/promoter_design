@@ -1,1 +1,0 @@
-python merge_replicates_GPD.py ~/facs-seq_test/GPD/means_trainable.csv ~/facs-seq_test/GPD/means_merged.csv ~/facs-seq_test/GPD/GPD_means_unmergeable.csv

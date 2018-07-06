@@ -1,0 +1,1 @@
+python ~/facs-seq/mean_extraction/filter_means.py filter_means_GPD.cfg
