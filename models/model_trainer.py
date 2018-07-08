@@ -24,7 +24,7 @@ def one_hot_encode(sequences):
   return(np.stack(ans, axis = 0))
 
 def de_onehot(seq_arr):
-  x = np.argmax(seq_arr, axis = 1)
+  x = np.argmax(seq_arr, axis = 2)
   seqs = []
   for i in x:
     seq = ''.join([DNA[q] for q in i])
@@ -75,6 +75,10 @@ def main_method(config):
     np.save(train_file + '_y', y_train_val)
     np.save(valid_file + '_y', y_valid_val)
     np.save(test_file + '_y', y_test_val)
+    # save output_names if reloading
+    with open(test_file + '_names.txt', 'w') as fn:
+      for n in output_names:
+        fn.write(n + '\n')
 
   else:
     print('Loading saved datasets...')
@@ -85,6 +89,12 @@ def main_method(config):
     y_train_val = np.load(train_file + '_y.npy')
     y_valid_val = np.load(valid_file + '_y.npy')
     y_test_val = np.load(test_file + '_y.npy')
+    output_names = []
+    with open(test_file + '_names.txt', 'r') as fn:
+      for l in fn:
+        output_names.append(l.strip())
+    print('Output names: ' + str(output_names))
+
     print('Datasets loaded.')
 
   dat_to_use_all = [[X_train, y_train_val],[X_valid, y_valid_val], [X_test, y_test_val], X_train.shape[1]]
@@ -110,15 +120,17 @@ def main_method(config):
   #Test the model
   #######################################################################################
 
-  preds = sim.predict(X_test[...,0:X_test.shape[2]-do_model.SHIFT+1]).squeeze()
+  preds = sim.predict(X_test[:,0:X_test.shape[1]-do_model.SHIFT+1,:])
   output = {'Seqs': test_sequences}
   for i,q in enumerate(output_names):
-    output[i] = y_test_val[i,:].squeeze()
-    output['Pred_' + i] = preds[i,:].squeeze()
+    output[q] = y_test_val[:,i].squeeze()
+    output['Pred_' + q] = preds[:,i].squeeze()
 
-  pandas.DataFrame(output).to_csv(os.path.expanduser(config.get('Files','preds')))
+  output = pandas.DataFrame(output)
+  output.to_csv(os.path.expanduser(config.get('Files','preds')), index = False)
+  print('Predictions written')
 
 if __name__ == '__main__':
   config = ConfigParser.RawConfigParser()
   config.read(sys.argv[1])
-  sim, preds = main_method(config)
+  main_method(config)

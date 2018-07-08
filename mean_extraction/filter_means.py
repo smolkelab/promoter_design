@@ -26,7 +26,7 @@ def munge_one_line(l, mins, maxes, m_range, take_mean):
     final_mean = np.mean(means)
     return(seq + ',' + str(final_mean) + '\n')
   else:
-    means = list(means)
+    means = [str(q) for q in means]
     return(seq + ',' + ','.join(means) + '\n')
 
 def main(fn_in, fn_out, fn_fail, mins, maxes, m_range, take_mean, outnames):
