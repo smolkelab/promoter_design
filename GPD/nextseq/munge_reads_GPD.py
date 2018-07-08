@@ -1,5 +1,3 @@
-# drop bins not in the sets of 12; for now, just take average of bins 8
-# Apply thresholding by total read count after munging
 import sys
 import numpy as np
 import pandas
