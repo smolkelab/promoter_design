@@ -11,6 +11,9 @@ from keras import backend as K
 from keras.initializers import RandomNormal
 import numpy as np
 
+import copy
+from random import shuffle
+
 SHIFT = 8
 
 def huber_loss(y_true, y_pred):
@@ -20,17 +23,49 @@ def huber_loss(y_true, y_pred):
   quad = K.min(K.stack([x, d_t], axis = -1), axis = -1)
   return( 0.5*K.square(quad) + d*(x - quad) )
 
-def shifting_batch_generator(dataset_X, dataset_y, batch_size, shift):
-  window_size = dataset_X.shape[1] - shift + 1
-  while True:
+#def shifting_batch_generator(dataset_X, dataset_y, batch_size, shift):
+#  window_size = dataset_X.shape[1] - shift + 1
+#  while True:
+#    X_out = []
+#    y_out = []
+#    for i in range(batch_size):
+#      sample_id = np.random.random_integers(0,dataset_X.shape[0]-1)
+#      offset = np.random.random_integers(0, shift-1)
+#      X_out.append(dataset_X[sample_id,offset:offset+window_size,:])
+#      y_out.append(dataset_y[sample_id])
+#    yield((np.stack(X_out,0), np.stack(y_out,0)))
+
+# shuffle the data at the start of each epoch, but present each sample exactly once per epoch
+# (where a "sample" is the combination of a raw sequence and an offset)
+class shifting_batch_generator(object):
+  def __init__(self, dataset_X, dataset_y, batch_size, shift):
+    self.dataset_X = dataset_X
+    self.dataset_y = dataset_y
+    self.batch_size = batch_size
+    self.shift = shift
+    self.window_size = dataset_X.shape[1] - shift + 1
+    self.tuples = ((p,q) for p in range(self.dataset_X.shape[0]) for q in range(self.shift))
+    self._regen_tuples()
+
+  def _regen_tuples(self):
+    self.curr_tuples = copy.copy(self.tuples)
+    shuffle(self.curr_tuples)
+
+  def _get_batch(self):
     X_out = []
     y_out = []
-    for i in range(batch_size):
-      sample_id = np.random.random_integers(0,dataset_X.shape[0]-1)
-      offset = np.random.random_integers(0, shift-1)
-      X_out.append(dataset_X[sample_id,offset:offset+window_size,:])
-      y_out.append(dataset_y[sample_id])
+    for i in range(self.batch_size):
+      if len(self.curr_tuples) == 0:
+        self._regen_tuples()
+      sample_id, offset = self.curr_tuples.pop()
+      X_out.append(self.dataset_X[sample_id,offset:offset+self.window_size,:])
+      y_out.append(self.dataset_y[sample_id])
     yield((np.stack(X_out,0), np.stack(y_out,0)))
+	  
+  def iter(self):
+    while True:
+      yield(self._get_batch())
+
 
 def do_model(dat_to_use, num_outputs, train = True):
   print(dat_to_use[0][0].shape)
@@ -65,7 +100,12 @@ def do_model(dat_to_use, num_outputs, train = True):
 
   if train:
     earlystopper = EarlyStopping(monitor='val_loss', patience=5, verbose=1)
-    model.fit_generator(generator =  shifting_batch_generator(dat_to_use[0][0], dat_to_use[0][1], batch_size, shift), steps_per_epoch =  shift*dat_to_use[0][0].shape[0]/batch_size, # was 4!
-      epochs = 100, callbacks = [earlystopper], validation_data = shifting_batch_generator(dat_to_use[1][0], dat_to_use[1][1], batch_size, shift), 
+    gen_train = shifting_batch_generator(dat_to_use[0][0], dat_to_use[0][1], batch_size, shift)
+    gen_valid = shifting_batch_generator(dat_to_use[1][0], dat_to_use[1][1], batch_size, shift)
+    model.fit_generator(generator =  gen_train.iter(), steps_per_epoch =  shift*dat_to_use[0][0].shape[0]/batch_size, # was 4!
+      epochs = 100, callbacks = [earlystopper], validation_data = gen_valid.iter(), 
       validation_steps = shift*dat_to_use[1][0].shape[0]/batch_size, verbose = 2)
+    #model.fit_generator(generator =  shifting_batch_generator(dat_to_use[0][0], dat_to_use[0][1], batch_size, shift), steps_per_epoch =  shift*dat_to_use[0][0].shape[0]/batch_size, # was 4!
+    #  epochs = 100, callbacks = [earlystopper], validation_data = shifting_batch_generator(dat_to_use[1][0], dat_to_use[1][1], batch_size, shift), 
+    #  validation_steps = shift*dat_to_use[1][0].shape[0]/batch_size, verbose = 2)
   return(model)
