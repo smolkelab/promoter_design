@@ -15,6 +15,8 @@ import copy
 from random import shuffle
 
 SHIFT = 8
+UNITS = 64
+REG = 5e-5
 
 def huber_loss(y_true, y_pred):
   d = 0.15
@@ -44,7 +46,8 @@ class shifting_batch_generator(object):
     self.batch_size = batch_size
     self.shift = shift
     self.window_size = dataset_X.shape[1] - shift + 1
-    self.tuples = ((p,q) for p in range(self.dataset_X.shape[0]) for q in range(self.shift))
+    tuple_gen = ((p,q) for p in range(self.dataset_X.shape[0]) for q in range(self.shift))
+    self.tuples = [i for i in tuple_gen]
     self._regen_tuples()
 
   def _regen_tuples(self):
@@ -60,21 +63,22 @@ class shifting_batch_generator(object):
       sample_id, offset = self.curr_tuples.pop()
       X_out.append(self.dataset_X[sample_id,offset:offset+self.window_size,:])
       y_out.append(self.dataset_y[sample_id])
-    yield((np.stack(X_out,0), np.stack(y_out,0)))
-	  
+    return((np.stack(X_out,0), np.stack(y_out,0)))
+
   def iter(self):
     while True:
       yield(self._get_batch())
 
 
 def do_model(dat_to_use, num_outputs, train = True):
+
   print(dat_to_use[0][0].shape)
   print(dat_to_use[0][1].shape)
   shift = SHIFT
   batch_size = 128
 
   def add_conv(model):
-    model.add(Convolution1D(filters=128, kernel_size=8, activation=None,strides=1,padding='same', kernel_regularizer = l2(1e-4), bias_regularizer = l2(1e-4)))
+    model.add(Convolution1D(filters=UNITS, kernel_size=8, activation=None,strides=1,padding='same', kernel_regularizer = l2(REG), bias_regularizer = l2(REG)))
     model.add(BatchNormalization())
     model.add(Activation('relu'))
     model.add(MaxPooling1D(pool_size=2))
@@ -87,10 +91,10 @@ def do_model(dat_to_use, num_outputs, train = True):
   for i in range(6):
     model = add_conv(model)
   model.add(Flatten())
-  model.add(Dense(units=128, kernel_regularizer = l2(1e-4), bias_regularizer = l2(1e-4)))
+  model.add(Dense(units=UNITS, kernel_regularizer = l2(REG), bias_regularizer = l2(REG)))
   model.add(BatchNormalization())
   model.add(Activation('relu'))
-  model.add(Dense(units=128, kernel_regularizer = l2(1e-4), bias_regularizer = l2(1e-4)))
+  model.add(Dense(units=UNITS, kernel_regularizer = l2(REG), bias_regularizer = l2(REG)))
   model.add(BatchNormalization())
   model.add(Activation('relu'))
   model.add(Dense(units=num_outputs))
@@ -103,7 +107,7 @@ def do_model(dat_to_use, num_outputs, train = True):
     gen_train = shifting_batch_generator(dat_to_use[0][0], dat_to_use[0][1], batch_size, shift)
     gen_valid = shifting_batch_generator(dat_to_use[1][0], dat_to_use[1][1], batch_size, shift)
     model.fit_generator(generator =  gen_train.iter(), steps_per_epoch =  shift*dat_to_use[0][0].shape[0]/batch_size, # was 4!
-      epochs = 100, callbacks = [earlystopper], validation_data = gen_valid.iter(), 
+      epochs = 100, callbacks = [earlystopper], validation_data = gen_valid.iter(),
       validation_steps = shift*dat_to_use[1][0].shape[0]/batch_size, verbose = 2)
     #model.fit_generator(generator =  shifting_batch_generator(dat_to_use[0][0], dat_to_use[0][1], batch_size, shift), steps_per_epoch =  shift*dat_to_use[0][0].shape[0]/batch_size, # was 4!
     #  epochs = 100, callbacks = [earlystopper], validation_data = shifting_batch_generator(dat_to_use[1][0], dat_to_use[1][1], batch_size, shift), 
