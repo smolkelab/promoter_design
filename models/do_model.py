@@ -15,8 +15,8 @@ import copy
 from random import shuffle
 
 SHIFT = 8
-UNITS = 64
-REG = 5e-5
+UNITS = 128
+REG = 1e-4
 
 def huber_loss(y_true, y_pred):
   d = 0.15
@@ -25,20 +25,6 @@ def huber_loss(y_true, y_pred):
   quad = K.min(K.stack([x, d_t], axis = -1), axis = -1)
   return( 0.5*K.square(quad) + d*(x - quad) )
 
-#def shifting_batch_generator(dataset_X, dataset_y, batch_size, shift):
-#  window_size = dataset_X.shape[1] - shift + 1
-#  while True:
-#    X_out = []
-#    y_out = []
-#    for i in range(batch_size):
-#      sample_id = np.random.random_integers(0,dataset_X.shape[0]-1)
-#      offset = np.random.random_integers(0, shift-1)
-#      X_out.append(dataset_X[sample_id,offset:offset+window_size,:])
-#      y_out.append(dataset_y[sample_id])
-#    yield((np.stack(X_out,0), np.stack(y_out,0)))
-
-# shuffle the data at the start of each epoch, but present each sample exactly once per epoch
-# (where a "sample" is the combination of a raw sequence and an offset)
 class shifting_batch_generator(object):
   def __init__(self, dataset_X, dataset_y, batch_size, shift):
     self.dataset_X = dataset_X
@@ -109,7 +95,4 @@ def do_model(dat_to_use, num_outputs, train = True):
     model.fit_generator(generator =  gen_train.iter(), steps_per_epoch =  shift*dat_to_use[0][0].shape[0]/batch_size, # was 4!
       epochs = 100, callbacks = [earlystopper], validation_data = gen_valid.iter(),
       validation_steps = shift*dat_to_use[1][0].shape[0]/batch_size, verbose = 2)
-    #model.fit_generator(generator =  shifting_batch_generator(dat_to_use[0][0], dat_to_use[0][1], batch_size, shift), steps_per_epoch =  shift*dat_to_use[0][0].shape[0]/batch_size, # was 4!
-    #  epochs = 100, callbacks = [earlystopper], validation_data = shifting_batch_generator(dat_to_use[1][0], dat_to_use[1][1], batch_size, shift), 
-    #  validation_steps = shift*dat_to_use[1][0].shape[0]/batch_size, verbose = 2)
   return(model)
