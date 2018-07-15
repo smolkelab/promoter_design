@@ -3,6 +3,8 @@
 
 import sys
 import os
+import pandas
+import numpy as np
 import ConfigParser
 import random
 from sklearn.cross_validation import train_test_split
@@ -41,17 +43,24 @@ def main_method(config):
   X_test = one_hot_encode(test_sequences)
   np.save(test_file, X_test)
   np.save(test_file + '_y', y_test_val)
-  
+
   # Select validation sets
-  i = 0
-  while len(train_sequences) > 0:
+  i = 0; going = True
+  while going: # will break when we run out of sequences
     if random_seed > 0:
       random.seed(random_seed); np.random.seed(random_seed)
-    train_sequences, valid_sequences, y_train_val, y_valid_val = train_test_split(train_sequences, y_train_val, test_size=validation_set_size)
-    X_valid = one_hot_encode(valid_sequences)
-    np.save(valid_file + str(i), X_valid)
-    np.save(valid_file + str(i) + '_y', y_valid_val)
-  
+    try:
+      train_sequences, valid_sequences, y_train_val, y_valid_val = train_test_split(train_sequences, y_train_val, test_size=validation_set_size)
+      X_valid = one_hot_encode(valid_sequences)
+      np.save(valid_file + '_' + str(i), X_valid)
+      np.save(valid_file + '_' + str(i) + '_y', y_valid_val)
+    except ValueError: # save whatever's left in 'train_sequences' and break
+      X_valid = one_hot_encode(train_sequences)
+      np.save(valid_file + '_' + str(i), X_valid)
+      np.save(valid_file + '_' + str(i) + '_y', y_train_val)
+      going = False
+    i += 1
+
   # save output_names if reloading
   with open(test_file + '_names.txt', 'w') as fn:
     for n in output_names:

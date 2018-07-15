@@ -96,19 +96,18 @@ def main_method(config, valid_split = None):
       X_valid = np.load(valid_file + '.npy')
       y_train_val = np.load(train_file + '_y.npy')
       y_valid_val = np.load(valid_file + '_y.npy')
-    
+
 	# Assemble the training dataset from cross-validation splits
     else:
-	  num_valid = int(config.get('Params','num_valid'))
-	  X_all_valid = [np.load(valid_file + str(q) + '.npy' for q in range(num_valid)]
-	  y_all_valid = [np.load(valid_file + str(q) + '_y.npy' for q in range(num_valid)]
-	  X_valid = X_all_valid.pop(valid_split)
-	  y_valid_val = y_all_valid.pop(valid_split)
-	  X_train = np.concatenate(X_all_valid, axis = 0)
-	  y_train_val = np.concatenate(y_all_valid, axis = 0)
+      num_valid = int(config.get('Params','num_valid'))
+      X_all_valid = [np.load(valid_file + str(q) + '.npy') for q in range(num_valid)]
+      y_all_valid = [np.load(valid_file + str(q) + '_y.npy') for q in range(num_valid)]
+      X_valid = X_all_valid.pop(valid_split)
+      y_valid_val = y_all_valid.pop(valid_split)
+      X_train = np.concatenate(X_all_valid, axis = 0)
+      y_train_val = np.concatenate(y_all_valid, axis = 0)
 
     print('Datasets loaded.')
-	  
 
   dat_to_use_all = [[X_train, y_train_val],[X_valid, y_valid_val], [X_test, y_test_val], X_train.shape[1]]
 
