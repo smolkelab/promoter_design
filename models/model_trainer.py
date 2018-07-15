@@ -31,7 +31,7 @@ def de_onehot(seq_arr):
     seqs.append(seq)
   return(seqs)
 
-def main_method(config):
+def main_method(config, valid_split = None):
 
   #######################################################################################
   #Preprocessing
@@ -46,7 +46,7 @@ def main_method(config):
 
   train_file, valid_file, test_file = [q + '_' + str(random_seed) for q in [train_file, valid_file, test_file]]
 
-  if not all([os.path.isfile(q + '.npy') for q in [train_file, valid_file, test_file]]):
+  if not all([os.path.isfile(q + '.npy') for q in [train_file, valid_file, test_file]]) and valid_split == None:
 
     pre_text, post_text = (config.get('Params', 'pad_left'), config.get('Params', 'pad_right'))
     alldat = pandas.read_csv(filename, sep = ',')
@@ -82,20 +82,33 @@ def main_method(config):
 
   else:
     print('Loading saved datasets...')
-    X_train = np.load(train_file + '.npy')
-    X_valid = np.load(valid_file + '.npy')
     X_test = np.load(test_file + '.npy')
-    test_sequences = de_onehot(X_test)
-    y_train_val = np.load(train_file + '_y.npy')
-    y_valid_val = np.load(valid_file + '_y.npy')
     y_test_val = np.load(test_file + '_y.npy')
+    test_sequences = de_onehot(X_test)
     output_names = []
     with open(test_file + '_names.txt', 'r') as fn:
       for l in fn:
         output_names.append(l.strip())
     print('Output names: ' + str(output_names))
 
+    if valid_split == None:
+      X_train = np.load(train_file + '.npy')
+      X_valid = np.load(valid_file + '.npy')
+      y_train_val = np.load(train_file + '_y.npy')
+      y_valid_val = np.load(valid_file + '_y.npy')
+    
+	# Assemble the training dataset from cross-validation splits
+    else:
+	  num_valid = int(config.get('Params','num_valid'))
+	  X_all_valid = [np.load(valid_file + str(q) + '.npy' for q in range(num_valid)]
+	  y_all_valid = [np.load(valid_file + str(q) + '_y.npy' for q in range(num_valid)]
+	  X_valid = X_all_valid.pop(valid_split)
+	  y_valid_val = y_all_valid.pop(valid_split)
+	  X_train = np.concatenate(X_all_valid, axis = 0)
+	  y_train_val = np.concatenate(y_all_valid, axis = 0)
+
     print('Datasets loaded.')
+	  
 
   dat_to_use_all = [[X_train, y_train_val],[X_valid, y_valid_val], [X_test, y_test_val], X_train.shape[1]]
 
@@ -131,6 +144,10 @@ def main_method(config):
   print('Predictions written')
 
 if __name__ == '__main__':
-  config = ConfigParser.RawConfigParser()
+  config = ConfigParser.RawConfigParser(allow_no_value=True)
   config.read(sys.argv[1])
-  main_method(config)
+  if len(sys.argv) > 2:
+    valid_split = int(sys.argv[2])
+  else:
+    valid_split = None
+  main_method(config, valid_split)

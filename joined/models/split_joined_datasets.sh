@@ -1,0 +1,1 @@
+python ~/facs-seq/models/split_datasets.py train_model_joined.cfg
