@@ -97,11 +97,11 @@ def main_method(config, valid_split = None):
       y_train_val = np.load(train_file + '_y.npy')
       y_valid_val = np.load(valid_file + '_y.npy')
 
-	# Assemble the training dataset from cross-validation splits
+    # Assemble the training dataset from cross-validation splits
     else:
       num_valid = int(config.get('Params','num_valid'))
-      X_all_valid = [np.load(valid_file + str(q) + '.npy') for q in range(num_valid)]
-      y_all_valid = [np.load(valid_file + str(q) + '_y.npy') for q in range(num_valid)]
+      X_all_valid = [np.load(valid_file + '_' + str(q) + '.npy') for q in range(num_valid)]
+      y_all_valid = [np.load(valid_file + '_' + str(q) + '_y.npy') for q in range(num_valid)]
       X_valid = X_all_valid.pop(valid_split)
       y_valid_val = y_all_valid.pop(valid_split)
       X_train = np.concatenate(X_all_valid, axis = 0)
@@ -123,10 +123,17 @@ def main_method(config, valid_split = None):
     model_json = sim.to_json()
     with open(filename_sim+'.json', "w") as json_file:
       json_file.write(model_json)
-    sim.save_weights(filename_sim+'.h5')
+    if valid_split == None:
+      sim.save_weights(filename_sim+'.h5')
+    else:
+      sim.save_weights(filename_sim + '_' + str(valid_split) + '.h5')
 
   else:
-    sim.load_weights(filename_sim+'.h5')
+    if valid_split == None:
+      sim.load_weights(filename_sim+'.h5')
+    else:
+      sim.load_weights(filename_sim + '_' + str(valid_split) + '.h5')
+
     print('Weights loaded.')
   #######################################################################################
   #Test the model
@@ -139,7 +146,13 @@ def main_method(config, valid_split = None):
     output['Pred_' + q] = preds[:,i].squeeze()
 
   output = pandas.DataFrame(output)
-  output.to_csv(os.path.expanduser(config.get('Files','preds')), index = False)
+  if valid_split == None:
+    output.to_csv(os.path.expanduser(config.get('Files','preds')), index = False)
+  else:
+    fn_output = os.path.expanduser(config.get('Files','preds')).split('.')
+    fn_output = fn_output[0] + '_' + str(valid_split) + '.' + fn_output[1]
+    output.to_csv(fn_output, index = False)
+
   print('Predictions written')
 
 if __name__ == '__main__':
