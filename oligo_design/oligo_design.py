@@ -18,7 +18,7 @@ DNA_C = {'A':'T', 'C':'G', 'G':'C','T':'A'}
 class sequence_pool(object):
   def __init__(self, num_seqs, site_start, site_end, gg_len):
     # the extra column is so that one col. will always have 0 - covers a potential corner case
-    self.gg_mat = np.array(shape = (num_seqs, len(DNA)**gg_len + 1), dtype = 'bool')
+    self.gg_mat = np.zeros(shape = (num_seqs, len(DNA)**gg_len + 1), dtype = 'bool')
     self.ss = site_start
     self.se = site_end
     self.gg_len = gg_len
@@ -54,7 +54,7 @@ class sequence_pool(object):
     accepted = np.zeros(shape = (len(self.seqs),), dtype = 'bool')
     ans = []
     while True:
-      bin_counts = np.apply(np.sum, 1, self.gg_mat)
+      bin_counts = np.apply_along_axis(np.sum, 0, self.gg_mat)
       u_cts, u_idxes = np.unique(bin_counts, return_index = True)
       if len(u_cts) == 1: # they're all 0
           break
@@ -89,8 +89,8 @@ def build_pools(seqs, params):
     this_pool = sequence_pool(len(seqs), site_start, site_end, gg_site_len)
     for s in seqs:
       this_pool.add(s)
-      ans, seqs = this_pool.assign_seqs()
-      pools.append(ans)
+    ans, seqs = this_pool.assign_seqs()
+    pools.append(ans)
   return(pools, seqs) # 'seqs' is now the rejected sequences
 
 # create final oligos; add PCR regions and padding if needed
@@ -144,6 +144,9 @@ def main(cfg):
     for name, oligo in final_oligos:
       fo.write(name + '\n')
       fo.write(oligo + '\n')
+  with open(os.path.expanduser(cfg.get('Files','rejected_fn')),'w') as fr:
+    for seq in rejected:
+      fr.write(seq + '\n')
   
 if __name__ == '__main__':
   cfg = ConfigParser.RawConfigParser(allow_no_value=True)
