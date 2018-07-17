@@ -165,4 +165,4 @@ if __name__ == '__main__':
   evolver = seq_evolution(cfg)
   kwargs = {'num_mutations': 5, 'keep_parent': True, 'merge_outputs': np.mean, 'merge_models': np.mean}
   ans = evolver.basic_iterative(greedy_choose_best_seqs, num_iters, kwargs)
-  ans.to_csv(os.path.expanduser(cfg.get('Files','output_fn')), index = False)
+  ans.to_csv(os.path.expanduser(cfg.get('Files','preds_fn')), index = False)
