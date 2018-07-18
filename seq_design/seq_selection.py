@@ -52,8 +52,11 @@ def pick_top_N(seqs, scores, N):
   outpairs = zip(seqs_sorted.tolist(), scores.tolist())
   ans = []
   for i in range(N):
-    ans.append(outpairs.pop())
-  return([seq for seq, _ in outpairs], [score for _, score in outpairs])
+    try:
+      ans.append(outpairs.pop())
+    except IndexError:
+      break
+  return([seq for seq, _ in ans], [score for _, score in ans])
 
 def pick_random(seqs, scores, N):
   seqs_scores = zip(seqs, scores)
@@ -65,6 +68,7 @@ def main(cfg):
   random_seed = int(cfg.get('Params','random_seed'))
   random.seed(random_seed); np.random.seed(random_seed)
   scores = get_scores(dat, cfg)
+
   # filter out sequences by motif
   seq_passes = filter_sequences_by_motif(seqs, cfg)
   with open(os.path.expanduser(cfg.get('Files','rejected_fn')),'w') as ff:
@@ -75,9 +79,9 @@ def main(cfg):
   # apply the filter
   seqs = [s for (p,s) in zip(seq_passes,seqs) if p]
   scores = np.array([s for (p,s) in zip(seq_passes, scores) if p])
+
   # filter by strength threshold
   seqs, scores = filter_sequences_by_score(seqs, scores, cfg)
-
   # Select final sequences
   n_seqs = int(cfg.get('Params','NUM_SEQS_FINAL'))
   pick_top = cfg.get('Params','PICK_TOP') == 'True'
