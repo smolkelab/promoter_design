@@ -82,7 +82,9 @@ if __name__ == '__main__':
     cfg.set('Params','KEEP_PARENT','True:80,False:20')
     cfg.write(open(os.path.join('designs',fn_stem + '.cfg'), 'w'))
     script = 'nohup time python ../' + STRATEGIES[strategy][2] + ' ' + fn_stem + '.cfg > ~/facs-seq_test/seq_designs/logs/' + fn_stem + '.log &\n'
+    script_select =  'nohup python ../seq_selection.py ' + fn_stem + '.cfg >> ~/facs-seq_test/seq_designs/logs/' + fn_stem + '.log &\n'
     script_fn = os.path.join('designs',fn_stem + '.sh')
     with open(script_fn, 'w') as sf:
       sf.write(script)
+      sf.write(script_select)
     os.system('chmod +x ' + script_fn)
