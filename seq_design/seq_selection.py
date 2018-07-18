@@ -26,13 +26,8 @@ def load_from_csv(cfg):
   return(ans, seqs)
 
 def get_scores(dat, cfg):
-  score_fn = cfg.get('Params','SCORE_FN').strip()
-  if score_fn == 'mean':
-    score_one_seq_fx = np.mean
-  else:
-    score_one_seq = imp.load_source('score_one_seq', score_fn)
-    score_one_seq_fx = score_one_seq.score_one_seq_fx
-  scores = np.array([score_one_seq_fx(q) for q in dat])
+  scores = np.apply_along_axis(eval(cfg.get('Functions','merge_outputs')),1,dat) # n_seqs, m_models
+  scores = np.apply_along_axis(eval(cfg.get('Functions','merge_models')),1,scores) # n_seqs
   return(scores)
 
 # identify and reject sequences containing undesired motifs (e.g. BsaI sites)

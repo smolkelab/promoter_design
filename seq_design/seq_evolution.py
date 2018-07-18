@@ -52,18 +52,17 @@ class seq_evolution_class(object):
   #    s = self._populate_one_sequence()
   #    seqs.append(s)
   #  self.seqs = np.stack(seqs, axis = 0)
-	
   def _populate_sequences(self):
     seqs = np.zeros((self.num_seqs,) + self.base_probs.shape)
-	idx0 = np.arange(self.num_seqs)
-	for i in range(self.base_probs.shape[1]):
-	  if(np.max(self.base_probs[:,i]) == 1.):
-	    seqs[:,:,i] = self.base_probs[:,i]
-	  else:
-	    idx1 = choice(self.base_probs.shape[0], size = self.num_seqs, p = self.base_probs[:,i])
-	    seqs[idx0,idx1,i] = 1.
-	
-	
+    idx0 = np.arange(self.num_seqs)
+    for i in range(self.base_probs.shape[1]):
+      if(np.max(self.base_probs[:,i]) == 1.):
+        seqs[:,:,i] = self.base_probs[:,i]
+      else:
+        idx1 = choice(self.base_probs.shape[0], size = self.num_seqs, p = self.base_probs[:,i])
+        seqs[idx0,idx1,i] = 1.
+    self.seqs = seqs
+
   def _populate_one_sequence(self):
     s = np.zeros(shape = self.base_probs.shape)
     for i in range(self.base_probs.shape[1]):
