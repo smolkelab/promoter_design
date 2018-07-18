@@ -1,0 +1,31 @@
+Promoter,Objective,Filter,Function,Strategy,ID
+GPD,Strength,FALSE,Mean,Screening,0
+GPD,Strength,TRUE,Mean,Screening,1
+GPD,Strength,FALSE,Mean-sd,Screening,2
+GPD,Strength,TRUE,Mean-sd,Screening,3
+GPD,Strength,FALSE,Mean,Evolution to threshold,4
+GPD,Strength,FALSE,Mean-sd,Evolution to threshold,5
+GPD,Strength,TRUE,Mean-sd,Evolution to threshold,6
+GPD,Strength,FALSE,Mean,Evolution: cycle-limited,7
+GPD,Strength,FALSE,Mean-sd,Evolution: cycle-limited,8
+GPD,Strength,TRUE,Mean-sd,Evolution: cycle-limited,9
+ZEV,Induced strength,FALSE,Mean,Screening,10
+ZEV,Induced strength,TRUE,Mean,Screening,11
+ZEV,Induced strength,FALSE,Mean-sd,Screening,12
+ZEV,Induced strength,TRUE,Mean-sd,Screening,13
+ZEV,Induced strength,FALSE,Mean,Evolution to threshold,14
+ZEV,Induced strength,FALSE,Mean-sd,Evolution to threshold,15
+ZEV,Induced strength,TRUE,Mean-sd,Evolution to threshold,16
+ZEV,Induced strength,FALSE,Mean,Evolution: cycle-limited,17
+ZEV,Induced strength,FALSE,Mean-sd,Evolution: cycle-limited,18
+ZEV,Induced strength,TRUE,Mean-sd,Evolution: cycle-limited,19
+ZEV,AR + useful,FALSE,Mean,Screening,20
+ZEV,AR + useful,TRUE,Mean,Screening,21
+ZEV,AR + useful,FALSE,Mean-sd,Screening,22
+ZEV,AR + useful,TRUE,Mean-sd,Screening,23
+ZEV,AR + useful,FALSE,Mean,Evolution to threshold,24
+ZEV,AR + useful,FALSE,Mean-sd,Evolution to threshold,25
+ZEV,AR + useful,TRUE,Mean-sd,Evolution to threshold,26
+ZEV,AR + useful,FALSE,Mean,Evolution: cycle-limited,27
+ZEV,AR + useful,FALSE,Mean-sd,Evolution: cycle-limited,28
+ZEV,AR + useful,TRUE,Mean-sd,Evolution: cycle-limited,29

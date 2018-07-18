@@ -9,6 +9,7 @@ from numpy.random import choice
 import ConfigParser
 import imp
 import types
+import math
 
 DNA = ['A','C','G','T']
 
@@ -45,12 +46,16 @@ class seq_evolution(object):
   def _populate_sequences(self):
     seqs = []
     for q in range(self.num_seqs):
-      s = np.zeros(shape = self.base_probs.shape)
-      for i in range(self.base_probs.shape[1]):
-        s[choice(self.base_probs.shape[0], size = None, p = self.base_probs[:,i]), i] = 1.
+      s = self._populate_one_sequence()
       seqs.append(s)
     self.seqs = np.stack(seqs, axis = 0)
 
+  def _populate_one_sequence(self):
+    s = np.zeros(shape = self.base_probs.shape)
+    for i in range(self.base_probs.shape[1]):
+      s[choice(self.base_probs.shape[0], size = None, p = self.base_probs[:,i]), i] = 1.
+    return(s)
+    
   def _prepare_models(self):
     # get the model-building code and the filenames of weights to use
     do_model = imp.load_source('do_model', os.path.expanduser(self.cfg.get('Files','model_fn')))
@@ -134,9 +139,9 @@ class seq_evolution(object):
 
 # Functions relying on things to be implemented in daughter classes
 
-  def iterate(self, params):
+  def iterate(self, params, iter_idx):
     # generate mutated variants of current seqs - daughter classes to determine
-    vars = self.mutate_seqs(params['num_mutations'], params['keep_parent'])
+    vars = self.mutate_seqs(params['num_mutations'][iter_idx], params['keep_parent'][iter_idx])
     preds = self._reshaping_test_sequences(vars)
     self.seqs = self.choose_best_seqs(vars, preds, params)
 
@@ -150,13 +155,55 @@ class seq_evolution(object):
     self.choose_best_seqs = types.MethodType(choose_best_seqs, self)
     # sequences were populated and models prepared by __init__
     for i in range(num_iters):
-      self.iterate(params)
+      self.iterate(params, i)
     return( self.generate_report() )
+
+# Some helper functions for optimization
+def merge_outputs_AR_useful(axis_in):
+  # there should be two outputs: A (uninduced) and B (induced)
+  # This gives a sigmoid mapping 1.0 -> 0.1; 1.1 -> 0.5; 1.2 -> 0.9; goal is to ensure Pred_B is useful
+  # while otherwise optimizing activation ratio (B - A)
+  k1 = math.log(-9.); k2 = math.log(9.)
+  m = (k2-k1)/0.2; b = k1 - m
+  b_t = m*axis_in[1] + b
+  b_sig = math.exp(b_t)/(math.exp(b_t)+1.)
+  return( b_sig + axis_in[1] - axis_in[0])
+
+# just what it looks like - marginally more readable than a lambda, maybe
+def mean_minus_sd(axis_in):
+  return( np.mean(axis_in) - np.std(axis_in) )
+
+# as above.
+def get_induced(axis_in):
+  return(axis_in[1])
+ 
+# Is there a region of the sequence of length 'filter_len' with GC content < gc_min or > gc_max?
+# if yes, apply a penalty 'present_penalty' to the score.
+# Idea is that any such regions will be strongly selected against.
+def gc_filter(seq_arr, filter_len = 20, gc_min = 0.3, gc_max = 0.7, present_penalty = 10.): # seq_arr has shape (len(DNA), len(seq))
+  is_gc = np.apply_along_axis(np.sum, 0, seq_arr[[q in 'GC' for q in DNA],:])
+  is_at = np.logical_not(is_gc).astype('float')
+  most_gc = _max_window_score(is_gc, filter_len)
+  most_at = _max_window_score(is_at, filter_len)
+  if most_gc/float(filter_len) > gc_max or most_at/float(filter_len) > (1. - gc_min):
+    return(-1.*present_penalty)
+  return(0.)
+
+# find the stretch with the most '1.' in an array, given a window size
+def _max_window_score(arr_in, w_s):
+  cs = np.pad(np.cumsum(arr_in), (1,0), mode = 'constant')
+  scores = cs[w_s:] - cs[:-w_s] # cumsum of windows - i.e., number of '1.' in each window assuming all 0. or 1.
+  return(np.max(scores))
 
 def greedy_choose_best_seqs(self, vars, preds, params):
   # join multiple outputs from models into a single score; 'preds' is shape (n_seqs, n_mutations, n_outputs, n_models)
-  preds = np.apply_along_axis(params['merge_outputs'], 2, preds) # preds is now shape (n_seqs, n_models)
-  scores = np.apply_along_axis(params['merge_models'], 2, preds) # just take the average of model outputs
+  preds = np.apply_along_axis(params['merge_outputs'], 2, preds) # preds is now shape (n_seqs, n_mutations, n_models)
+  model_scores = np.apply_along_axis(params['merge_models'], 2, preds) # preds is now shape(n_seqs, n_mutations)
+  seq_scores = np.zeros(shape = preds.shape)
+  for i in range(preds.shape[0]):
+    for j in range(preds.shape[1]):
+      seq_scores[i,j] = params['seq_scores'](vars[i,j,...])
+  scores = model_scores + seq_scores
   best_ids = np.apply_along_axis(np.argmax, 1, scores) # shape (n_seqs,); ID of best variant of each sequence
   # vars has shape ( n_seqs, num_mutations, len(DNA), len(seq) )
   new_seqs = []
@@ -167,16 +214,43 @@ def greedy_choose_best_seqs(self, vars, preds, params):
   self.score_tracking.append(best_scores)
   return( np.stack(new_seqs, axis = 0) )
 
+# apply rules for extracting parameters from a config
+def unpack_params(cfg):
+  params = {'merge_outputs': eval(cfg.get('Functions','merge_outputs')),
+            'merge_models': eval(cfg.get('Functions','merge_models')),
+            'seq_scores': eval(cfg.get('Functions','seq_scores'))}
+  # format for these: e.g. 50:5,30:3,20:1 for 50 cycles with 5 mutations each, 30 with 3, 20 with 1
+  def decompress_pm(cfg, key):
+    pm = cfg.get('Params',key)
+    pm = pm.strip().split(',')
+    pm = [(p.split(':')[0], p.split(':')[1]) for p in pm]
+    pm = [[p]*q for (p,q) in pm]
+    return(flatten(pm))
+  params['num_mutations'] = [int(q) for q in decompress_pm('NUM_MUTATIONS')]
+  params['keep_parent'] = [q == 'True' for q in decompress_pm('KEEP_PARENT')]
+  assert(len(params['num_mutations'])) == int(cfg.get('Params','NUM_ITERS'))
+  assert(len(params['keep_parent'])) == int(cfg.get('Params','NUM_ITERS'))
+  return(params)
+
+# cf. http://rightfootin.blogspot.com/2006/09/more-on-python-flatten.html
+def flatten(l):
+  out = []
+  for item in l:
+    if isinstance(item, (list, tuple)):
+      out.extend(flatten(item))
+    else:
+      out.append(item)
+  return out
+  
 # Assume this is a GPD-like task, and use 'greedy_choose_best_seqs'
 if __name__ == '__main__':
   cfg = ConfigParser.RawConfigParser(allow_no_value=True)
   cfg.read(sys.argv[1])
+  random_seed = int(cfg.get('Params','random_seed'))
+  random.seed(random_seed); np.random.seed(random_seed)
   num_iters = int(cfg.get('Params','NUM_ITERS'))
   evolver = seq_evolution(cfg)
-  params = {'num_mutations': int(cfg.get('Params','NUM_MUTATIONS')),
-            'keep_parent': cfg.get('Params','KEEP_PARENT') == 'True',
-            'merge_outputs': eval(cfg.get('Functions','merge_outputs')),
-            'merge_models': eval(cfg.get('Functions','merge_models'))}
+  params = unpack_params(cfg)
   ans = evolver.basic_iterative(greedy_choose_best_seqs, num_iters, params)
   ans.to_csv(os.path.expanduser(cfg.get('Files','preds_fn')), index = False)
   scores_tracked = np.array(evolver.score_tracking)

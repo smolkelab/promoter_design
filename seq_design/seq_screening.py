@@ -10,12 +10,11 @@ from seq_evolution import seq_evolution
 if __name__ == '__main__':
   cfg = ConfigParser.RawConfigParser(allow_no_value=True)
   cfg.read(sys.argv[1])
+  random_seed = int(cfg.get('Params','random_seed'))
+  random.seed(random_seed); np.random.seed(random_seed)
   screener = seq_evolution(cfg)
   print('screener ready')
-  params = {'num_mutations': int(cfg.get('Params','NUM_MUTATIONS')),
-            'keep_parent': cfg.get('Params','KEEP_PARENT') == 'True',
-            'merge_outputs': eval(cfg.get('Functions','merge_outputs')),
-            'merge_models': eval(cfg.get('Functions','merge_models'))}
+  params = seq_evolution.unpack_params(cfg)
   thresh = float(cfg.get('Params','THRESH'))
   seqs_needed = int(cfg.get('Params','NUM_SEQS_FINAL'))
   seqs_passing = []
