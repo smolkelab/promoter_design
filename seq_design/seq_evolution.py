@@ -17,6 +17,7 @@ DNA = ['A','C','G','T']
 class seq_evolution_class(object):
 
   def __init__(self, cfg):
+    print('Building evolver...')
     self.cfg = cfg
     self.dna_dict = {}
     for (i,q) in enumerate(DNA):
@@ -31,6 +32,7 @@ class seq_evolution_class(object):
     random.seed(self.random_seed); np.random.seed(self.random_seed)
     self._populate_sequences()
     self._prepare_models()
+    print('Evolver built.')
 
   def _get_base_probs(self):
     seq = self.cfg.get('Params','SEQ')
@@ -56,7 +58,7 @@ class seq_evolution_class(object):
     for i in range(self.base_probs.shape[1]):
       s[choice(self.base_probs.shape[0], size = None, p = self.base_probs[:,i]), i] = 1.
     return(s)
-    
+
   def _prepare_models(self):
     # get the model-building code and the filenames of weights to use
     do_model = imp.load_source('do_model', os.path.expanduser(self.cfg.get('Files','model_fn')))
@@ -164,7 +166,7 @@ def merge_outputs_AR_useful(axis_in):
   # there should be two outputs: A (uninduced) and B (induced)
   # This gives a sigmoid mapping 1.0 -> 0.1; 1.1 -> 0.5; 1.2 -> 0.9; goal is to ensure Pred_B is useful
   # while otherwise optimizing activation ratio (B - A)
-  k1 = math.log(-9.); k2 = math.log(9.)
+  k1 = math.log(1./9.); k2 = math.log(9.)
   m = (k2-k1)/0.2; b = k1 - m
   b_t = m*axis_in[1] + b
   b_sig = math.exp(b_t)/(math.exp(b_t)+1.)
