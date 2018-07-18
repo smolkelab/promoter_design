@@ -10,10 +10,11 @@ import ConfigParser
 import imp
 import types
 import math
+import seq_evolution
 
 DNA = ['A','C','G','T']
 
-class seq_evolution(object):
+class seq_evolution_class(object):
 
   def __init__(self, cfg):
     self.cfg = cfg
@@ -199,7 +200,7 @@ def greedy_choose_best_seqs(self, vars, preds, params):
   # join multiple outputs from models into a single score; 'preds' is shape (n_seqs, n_mutations, n_outputs, n_models)
   preds = np.apply_along_axis(params['merge_outputs'], 2, preds) # preds is now shape (n_seqs, n_mutations, n_models)
   model_scores = np.apply_along_axis(params['merge_models'], 2, preds) # preds is now shape(n_seqs, n_mutations)
-  seq_scores = np.zeros(shape = preds.shape)
+  seq_scores = np.zeros(shape = model_scores.shape)
   for i in range(preds.shape[0]):
     for j in range(preds.shape[1]):
       seq_scores[i,j] = params['seq_scores'](vars[i,j,...])
@@ -249,7 +250,7 @@ if __name__ == '__main__':
   random_seed = int(cfg.get('Params','random_seed'))
   random.seed(random_seed); np.random.seed(random_seed)
   num_iters = int(cfg.get('Params','NUM_ITERS'))
-  evolver = seq_evolution(cfg)
+  evolver = seq_evolution_class(cfg)
   params = unpack_params(cfg)
   ans = evolver.basic_iterative(greedy_choose_best_seqs, num_iters, params)
   ans.to_csv(os.path.expanduser(cfg.get('Files','preds_fn')), index = False)

@@ -13,7 +13,7 @@ if __name__ == '__main__':
   cfg.read(sys.argv[1])
   random_seed = int(cfg.get('Params','random_seed'))
   random.seed(random_seed); np.random.seed(random_seed)
-  screener = seq_evolution.seq_evolution(cfg)
+  screener = seq_evolution.seq_evolution_class(cfg)
   print('screener ready')
   params = seq_evolution.unpack_params(cfg)
   thresh = float(cfg.get('Params','THRESH'))
