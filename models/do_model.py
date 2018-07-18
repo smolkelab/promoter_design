@@ -87,7 +87,6 @@ def do_model(dat_to_use, num_outputs, train = True):
 
   model.compile(optimizer = Adam(lr=1e-5,decay=0.), loss=huber_loss)
   print(model.summary())
-
   if train:
     earlystopper = EarlyStopping(monitor='val_loss', patience=5, verbose=1)
     gen_train = shifting_batch_generator(dat_to_use[0][0], dat_to_use[0][1], batch_size, shift)
