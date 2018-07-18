@@ -8,6 +8,7 @@ import random
 import pandas
 import seq_evolution
 import time
+import seq_selection
 
 if __name__ == '__main__':
   cfg = ConfigParser.RawConfigParser(allow_no_value=True)
@@ -40,3 +41,5 @@ if __name__ == '__main__':
   screener.seqs = np.array(seqs_passing)
   ans = screener.generate_report()
   ans.to_csv(os.path.expanduser(cfg.get('Files','preds_fn')), index = False)
+  
+  seq_selection.main(cfg)

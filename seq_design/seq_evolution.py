@@ -11,6 +11,7 @@ import imp
 import types
 import math
 import seq_evolution
+import seq_selection
 
 DNA = ['A','C','G','T']
 
@@ -269,3 +270,5 @@ if __name__ == '__main__':
   scores_tracked = np.array(evolver.score_tracking)
   fn_scores = os.path.expanduser(cfg.get('Files','score_fn'))
   np.savetxt(fn_scores, scores_tracked, delimiter=',')
+  
+  seq_selection.main(cfg)
