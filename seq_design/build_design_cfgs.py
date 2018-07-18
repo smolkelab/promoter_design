@@ -9,13 +9,13 @@ import pandas
 import ConfigParser
 
 # which promoter is this?
-PROMOTERS = {'GPD':'TACGTAAATAATTAATAGTAGTGACNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNTGTCTGGGTGNNNNNNNNNNNGGCATCCANNNNNNNNNNNNNNNNNNNNNNNNNGGCATCCANNNNNNNNATCCCAGCCANNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNGTATATAAAGMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMCACCAAGHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHATGTCTAAAGGTGAAGAATTATTCAC',
-             'ZEV':'TTTATCATTATCAATACTCGCCATTTCAAAGAATACGTAAATAATTAATAGTAGTGACNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNGCGTGGGCGNNNNNNNGCGTGGGCGNNNNNNNNNGCGTGGGCGNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNATAAGTATATAAAGACGGMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMCACCAAGHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHATGTCTAAAGGTGAAGAATTATTCACTGGTGTTGTCCCAATTTTGGTTGAATTAGATGG'} 
+PROMOTERS = {'GPD':['TACGTAAATAATTAATAGTAGTGACNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNTGTCTGGGTGNNNNNNNNNNNGGCATCCANNNNNNNNNNNNNNNNNNNNNNNNNGGCATCCANNNNNNNNATCCCAGCCANNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNGTATATAAAGMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMCACCAAGHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHATGTCTAAAGGTGAAGAATTATTCAC'],
+             'ZEV':['TTTATCATTATCAATACTCGCCATTTCAAAGAATACGTAAATAATTAATAGTAGTGACNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNGCGTGGGCGNNNNNNNGCGTGGGCGNNNNNNNNNGCGTGGGCGNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNATAAGTATATAAAGACGGMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMCACCAAGHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHATGTCTAAAGGTGAAGAATTATTCACTGGTGTTGTCCCAATTTTGGTTGAATTAGATGG']} 
 OBJECTIVES = {'Strength':['strong','np.mean'],
               'Induced strength':['induced','seq_evolution.get_induced'],
               'AR + useful':['useful','seq_evolution.merge_outputs_AR_useful']} # what are we optimizing for? (controls merge_outputs)
-FILTERS = {'TRUE':['gcfilter','seq_evolution.gc_filter'],'FALSE':['nofilter','lambda x: 0']} # Are we applying the GC content filter? (controls seq_scores)
-FUNCTIONS = {'mean':['mean','np.mean'],'mean-sd':['1sd','seq_evolution.mean_minus_sd']} # How are we combining the outputs from each model?
+FILTERS = {True:['gcfilter','seq_evolution.gc_filter'],False:['nofilter','lambda x: 0']} # Are we applying the GC content filter? (controls seq_scores)
+FUNCTIONS = {'Mean':['mean','np.mean'],'Mean-sd':['1sd','seq_evolution.mean_minus_sd']} # How are we combining the outputs from each model?
 STRATEGIES = {'Screening':['screen','10000','seq_screening.py'],
               'Evolution to threshold':['evolve-thresh','100','seq_evolve_to_threshold.py'],
               'Evolution: cycle-limited':['evolve-cycle','100','seq_evolution.py']} # What evolution/screening strategy are we using?
@@ -31,16 +31,22 @@ THRESHOLDS = {'GPD|Strength|Screening': '0.45',
               'ZEV|AR + useful|Evolution: cycle-limited': '2.8'}
 
 if __name__ == '__main__':
-  exps = pandas.read_csv(sys.argv[1])
-  assert(all(exps['Promoter'] in PROMOTERS))
-  assert(all(exps['Objective'] in OBJECTIVES))
-  assert(all(exps['Filter'] in FILTERS))
-  assert(all(exps['Function'] in FUNCTIONS))
-  assert(all(exps['Strategy'] in STRATEGIES))
-  
+  exps_p = pandas.read_csv(sys.argv[1])
+  exps = {}
+  for p in exps_p:
+    exps[p] = exps_p[p].tolist()
+  assert(all([q in PROMOTERS for q in exps['Promoter']]))
+  assert(all([q in OBJECTIVES for q in exps['Objective']]))
+  assert(all([q in FILTERS for q in exps['Filter']]))
+  assert(all([q in FUNCTIONS for q in exps['Function']]))
+  assert(all([q in STRATEGIES for q in exps['Strategy']]))
+
   for i, (promoter, objective, filter, function, strategy) in enumerate(zip(exps['Promoter'], exps['Objective'], exps['Filter'], exps['Function'], exps['Strategy'])):
-    fn_stem = '_'.join([promoter, OBJECTIVES[objective][0], FILTERS[filter][0], FUNCTIONS[function][0], STRATEGIES[strategy][0]])
+    fn_stem = '_'.join([str(i), promoter, OBJECTIVES[objective][0], FILTERS[filter][0], FUNCTIONS[function][0], STRATEGIES[strategy][0]])
     cfg = ConfigParser.RawConfigParser()
+    # Force case sensitivity, cf. https://stackoverflow.com/questions/1611799/preserve-case-in-configparser
+    cfg.optionxform=str
+
     cfg.add_section('Dirs')
     cfg.set('Dirs','weights_dir','~/facs-seq_test/joined/final_weights')
     
@@ -69,14 +75,14 @@ if __name__ == '__main__':
     cfg.set('Params','RANDOM_SEED','2017')
     cfg.set('Params','NUM_ITERS','100')
     cfg.set('Params','REJECT_MOTIFS','GGTCTC,GAGACC')
-    cfg.set('Params','THRESH', THRESHOLDS['|'.join([promoter, objective, strategy])]
+    cfg.set('Params','THRESH', THRESHOLDS['|'.join([promoter, objective, strategy])])
     cfg.set('Params','NUM_SEQS_FINAL','120')
     cfg.set('Params','PICK_TOP','True')
     cfg.set('Params','NUM_MUTATIONS','5:50,3:30,1:20')
     cfg.set('Params','KEEP_PARENT','True:80,False:20')
-    cfg.write(open(os.path.join('designs',str(i) + '_' + fn_stem + '.cfg'), 'w'))
-    script = 'nohup time python ' + STRATEGIES[strategy][2] + ' ' + fn_stem + '.cfg > ' str(i) + '_' +  fn_stem + '.log &\n'
-    script_fn = os.path.join('designs',str(i) + '_' + fn_stem + '.sh')
+    cfg.write(open(os.path.join('designs',fn_stem + '.cfg'), 'w'))
+    script = 'nohup time python ../' + STRATEGIES[strategy][2] + ' ' + fn_stem + '.cfg > ~/facs-seq_test/seq_designs/logs/' + fn_stem + '.log &\n'
+    script_fn = os.path.join('designs',fn_stem + '.sh')
     with open(script_fn, 'w') as sf:
       sf.write(script)
     os.system('chmod +x ' + script_fn)

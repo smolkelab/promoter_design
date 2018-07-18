@@ -224,10 +224,10 @@ def unpack_params(cfg):
     pm = cfg.get('Params',key)
     pm = pm.strip().split(',')
     pm = [(p.split(':')[0], p.split(':')[1]) for p in pm]
-    pm = [[p]*q for (p,q) in pm]
+    pm = [[p]*int(q) for (p,q) in pm]
     return(flatten(pm))
-  params['num_mutations'] = [int(q) for q in decompress_pm('NUM_MUTATIONS')]
-  params['keep_parent'] = [q == 'True' for q in decompress_pm('KEEP_PARENT')]
+  params['num_mutations'] = [int(q) for q in decompress_pm(cfg, 'NUM_MUTATIONS')]
+  params['keep_parent'] = [q == 'True' for q in decompress_pm(cfg, 'KEEP_PARENT')]
   assert(len(params['num_mutations'])) == int(cfg.get('Params','NUM_ITERS'))
   assert(len(params['keep_parent'])) == int(cfg.get('Params','NUM_ITERS'))
   return(params)
