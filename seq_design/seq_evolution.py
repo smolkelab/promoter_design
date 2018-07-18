@@ -193,7 +193,7 @@ def get_induced(axis_in):
 # Is there a region of the sequence of length 'filter_len' with GC content < gc_min or > gc_max?
 # if yes, apply a penalty 'present_penalty' to the score.
 # Idea is that any such regions will be strongly selected against.
-def gc_filter(seq_arr, filter_len = 20, gc_min = 0.3, gc_max = 0.7, present_penalty = 10.): # seq_arr has shape (len(DNA), len(seq))
+def gc_filter(seq_arr, filter_len = 20, gc_min = 0.2, gc_max = 0.8, present_penalty = 10.): # seq_arr has shape (len(DNA), len(seq))
   is_gc = np.apply_along_axis(np.sum, 0, seq_arr[[q in 'GC' for q in DNA],:])
   is_at = np.logical_not(is_gc).astype('float')
   most_gc = _max_window_score(is_gc, filter_len)

@@ -8,6 +8,7 @@ import pandas
 import random
 import numpy as np
 import ConfigParser
+import seq_evolution
 
 def load_from_csv(cfg):
   fn_in = os.path.expanduser(cfg.get('Files','preds_fn'))
