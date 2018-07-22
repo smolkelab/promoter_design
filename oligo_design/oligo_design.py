@@ -122,12 +122,12 @@ def fill_oligos(pools, params):
       final_oligos.append((name_stem + '|R', rev_seq))
   return(final_oligos)
 
-def main(cfg):
+# For modularity: given a list of sequences and a config, get the 'final oligos' output.
+def seqs_to_oligos(seqs, cfg):
+  assert(all([len(q) == len(seqs[0]) for q in seqs]))
   params = dict(cfg.items('Params'))
   random_seed = int(params['random_seed'])
   random.seed(random_seed); np.random.seed(random_seed)
-  seqs = list(pandas.read_csv(os.path.expanduser(cfg.get('Files','selected_fn')))['Seqs'])
-  assert(all([len(q) == len(seqs[0]) for q in seqs]))
   # remove padding from sequences
   [pad_len_f, pad_len_r] = [int(q) for q in params['pad_lens'].strip().split(',')]
   seqs = [q[pad_len_f:-pad_len_r] for q in seqs]
@@ -140,6 +140,12 @@ def main(cfg):
   params['fwd_pools'] = fwd_pools; params['rev_pools'] = rev_pools
   pools, rejected = build_pools(seqs, params)
   final_oligos = fill_oligos(pools, params)
+  return(final_oligos, rejected)
+  
+def main(cfg):
+  seqs = list(pandas.read_csv(os.path.expanduser(cfg.get('Files','selected_fn')))['Seqs'])
+  final_oligos, rejected = seqs_to_oligos(seqs, cfg)
+  
   with open(os.path.expanduser(cfg.get('Files','oligo_fn')),'w') as fo:
     for name, oligo in final_oligos:
       fo.write(name + '\n')
