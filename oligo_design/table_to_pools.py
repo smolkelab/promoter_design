@@ -28,17 +28,30 @@ POOL_TOEHOLD_LENS = { 'GPD': '17,17', 'ZEV': '25,25' }
 # rev_pools = GCGAGCCTTCCCAACGT,TCGGCGAGCCCAGAAGT,ATATCATCTGTCCTGAC
 # assembly_id = test
 
-def customize_cfg(cfg, table, keyname, primer_gen):
+def customize_cfg(cfg, table, keyname, primer_gen, fwd_pool_gen, rev_pool_gen, num_fwd, num_rev):
   c = copy.copy(cfg)
   lib_id = table['Library'].unique(); assert(len(lib_id) == 1)
   c.set('Params','pad_lens',PAD_LENS[lib_id[0]])
   c.set('Params','assembly_id',c.get('Params','assembly_id') + '_' + str(keyname))
-  fwd_pools = # TBD: use a 'primer_gen' object to generate these primers
-  rev_pools = 
-  c.set('Params','fwd_pools',fwd_pools)
-  c.set('Params','rev_pools',rev_pools)
+  fwd_pools = []
+  for i in range(num_fwd):
+    fwd_pools.append(fwd_pool_gen.next())
+  rev_pools = []
+  for i in range(num_rev):
+    rev_pools.append(rev_pool_gen.next())
+  c.set('Params','fwd_pools',','.join(fwd_pools))
+  c.set('Params','rev_pools',','.join(rev_pools))
   return(c)
 
+# generator; yields lines starting with 'start_line' (0-indexed, of course)
+def start_file_at_line(fn_in, start_line):
+  with open(fn_in, 'r') as fi:
+    curr_line = 0
+    while curr_line < start_line:
+      x = fi.next()
+    while True:
+      yield(fi.next().strip())
+  
 if __name__ == '__main__':
   # load data
   cfg = ConfigParser.RawConfigParser(allow_no_value=True)
@@ -48,14 +61,22 @@ if __name__ == '__main__':
   dat = dat.loc[pd.notna(dat['Last.Control.Use']),:]
   pool_names = dat['Last.Control.Use'].unique()
   dfs = { q: dat.loc[dat['Last.Control.Use'] == q,:] for q in pool_names }
-  cfgs = { q: customize_cfg(cfg, dfs[q], q) for q in pool_names }
+  cfgs = {}
+  fn_fwd_pool = os.path.expanduser(cfg.get('Pools', 'fwd_pool_fn'))
+  start_fwd_pool = int(cfg.get('Pools','fwd_pool_start'))
+  fn_rev_pool = os.path.expanduser(cfg.get('Pools', 'rev_pool_fn'))
+  start_rev_pool = int(cfg.get('Pools','rev_pool_start'))
+  fwd_pool_gen = start_file_at_line(fn_fwd_pool, start_fwd_pool)  # open the file; start at a specified line
+  rev_pool_gen = start_file_at_line(fn_rev_pool, start_rev_pool)
+  for q in pool_names:
+    cfgs[q] = customize_cfg(cfg, dfs[q], q, fwd_pool_gen, rev_pool_gen, num_fwd = 2, num_rev = 2)
   finals = []; rejects = []
   for q in pool_names:
     d = dfs[q]; c = cfgs[q]
     seqs = d['Seq']
-	final_oligos, rejected = oligo_design.seqs_to_oligos(seqs, c)
+    final_oligos, rejected = oligo_design.seqs_to_oligos(seqs, c)
     finals.extend(final_oligos)
-	rejects.extend(rejected)
+    rejects.extend(rejected)
 
   with open(os.path.expanduser(cfg.get('Files','oligo_fn')),'w') as fo:
     for name, oligo in final_oligos:
