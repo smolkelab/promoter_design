@@ -7,6 +7,7 @@ import sys
 import os
 import math
 import numpy as np
+import pandas as pd
 import copy
 import primer3
 
@@ -30,7 +31,7 @@ class primer_set(object):
     self.full_tolerance = float(params['full_tolerance'])
     self.misprime_tolerance = float(params['misprime_tolerance'])
     self.evolve_iterations = int(params['evolve_iterations']) # number of iterations allowed for one call to 'evolve_new_seq' to get one new seq
-    self.seqs = []
+    self.seqs = {'Toehold':[], 'Full':[]}
     self.seq_base = params['SEQ']
     self.base_probs = {'N': N_PROBS} # base probabilities for the toehold: include e.g. BsaI sites this way
     for q in self.seq_base:
@@ -109,9 +110,9 @@ class primer_set(object):
     return(ans)
 
   def true_if_no_misprimes_to_seqs(self, seq):
-    if len(self.seqs) == 0:
+    if len(self.seqs['Full']) == 0:
       return True
-    return(all([self.true_if_no_misprime(seq, q, self.toe_anneal) for q in self.seqs]))
+    return(all([self.true_if_no_misprime(seq, q, self.toe_anneal) for q in self.seqs['Full']]))
 
   # evolve a valid new toe first, then extend
   # 'self.evolve_iterations' available to get both tasks done.
@@ -119,6 +120,7 @@ class primer_set(object):
     seq = self.get_random_seq()
     is_full = False
     template = self.seq_base
+    toe = None; full = None
     for i in range(self.evolve_iterations):
       if is_full: # get temperature targets based on what part of the process this is
         target = self.full_anneal
@@ -129,7 +131,8 @@ class primer_set(object):
       tm = self.melting_temp(seq)
       if tm > target_low and tm < target_high:
         if not is_full:
-          is_full = True; new_pad = ''.join(['N']*self.len_full_add)
+          is_full = True; toe = seq
+          new_pad = ''.join(['N']*self.len_full_add)
           if self.add_to_left:
             template = new_pad + seq
             seq = self.get_random_seq(template)
@@ -137,15 +140,17 @@ class primer_set(object):
             template = seq + new_pad
             seq = self.get_random_seq(template)
         else:
-          return(seq)
+          full = seq
+          return(toe, full)
       seq = self.evolve_one_step(seq, template, target)
-    return(None)
+    return(None, None)
 
   def evolve_new_seq(self):
-    seq = self.evolve_new_seq_inner()
-    if seq != None:
-      if self.true_if_no_misprimes_to_seqs(seq):
-        self.seqs.append(seq)
+    toe, full = self.evolve_new_seq_inner()
+    if full != None:
+      if self.true_if_no_misprimes_to_seqs(full):
+        self.seqs['Toehold'].append(toe)
+        self.seqs['Full'].append(full)
 
 def get_seqs(cfg):
   num_seqs = int(cfg.get('Params','num_seqs'))
@@ -163,18 +168,17 @@ if __name__ == '__main__':
   cfg = ConfigParser.RawConfigParser(allow_no_value=True); cfg.optionxform=str
   cfg.read(sys.argv[1])
   primers = get_seqs(cfg)
-  for seq in primers.seqs:
-    print('Seq: ' + str(seq))
-    toe = seq[-len(cfg.get('Params','SEQ')):]
+  for (toe, full) in zip(primers.seqs['Toehold'], primers.seqs['Full']):
+    print('Full: ' + str(full))
     print('Toe: ' + str(toe))
     print('T_melt (toe): ' + str(primers.melting_temp(toe)))
-    print('T_melt (full): ' + str(primers.melting_temp(seq)))
+    print('T_melt (full): ' + str(primers.melting_temp(full)))
     t_ann = float(cfg.get('Params','toe_anneal'))
     worst_seq = ''
     worst_t = -1000.
-    for q in primers.seqs:
-      if q != seq:
-        new_t = primers.get_misprime_tm(seq, q, t_ann)
+    for q in primers.seqs['Full']:
+      if q != full:
+        new_t = primers.get_misprime_tm(full, q, t_ann)
         if new_t > worst_t:
           worst_t = new_t; worst_seq = q
 
@@ -182,6 +186,5 @@ if __name__ == '__main__':
     print('Worst misprime sequence: ' + str(worst_seq))
   print('Sequences generated: ' + str(len(primers.seqs)))
   if len(sys.argv) > 2:
-    with open(sys.argv[2], 'w') as fo:
-      for seq in primers.seqs:
-        fo.write(seq + '\n')
+    df_out = pd.DataFrame(primers.seqs)
+    df.to_csv(sys.argv[2])

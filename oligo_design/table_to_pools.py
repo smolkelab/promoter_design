@@ -54,13 +54,13 @@ def customize_cfg(cfg, table, keyname, fwd_pool_gen, rev_pool_gen, num_fwd, num_
   return(c)
 
 # generator; yields lines starting with 'start_line' (0-indexed, of course)
-def start_file_at_line(fn_in, start_line):
-  with open(fn_in, 'r') as fi:
-    curr_line = 0
-    while curr_line < start_line:
-      x = fi.next()
-    while True:
-      yield(fi.next().strip())
+def start_toeholds_at_line(fn_in, start_toe):
+  df = pd.read_csv(fn_in)
+  toeholds = df['Toehold'].tolist()
+  curr_toe = start_toe
+  while True:
+    yield(toeholds[curr_toe])
+    curr_toe += 1
 
 if __name__ == '__main__':
   # load data
@@ -76,8 +76,8 @@ if __name__ == '__main__':
   start_fwd_pool = int(cfg.get('Pools','fwd_pool_start'))
   fn_rev_pool = os.path.expanduser(cfg.get('Pools', 'rev_pool_fn'))
   start_rev_pool = int(cfg.get('Pools','rev_pool_start'))
-  fwd_pool_gen = start_file_at_line(fn_fwd_pool, start_fwd_pool)  # open the file; start at a specified line
-  rev_pool_gen = start_file_at_line(fn_rev_pool, start_rev_pool)
+  fwd_pool_gen = start_toeholds_at_line(fn_fwd_pool, start_fwd_pool)  # open the file; start at a specified line
+  rev_pool_gen = start_toeholds_at_line(fn_rev_pool, start_rev_pool)
   for q in pool_names:
     cfgs[q] = customize_cfg(copy_cfg(cfg), dfs[q], q, fwd_pool_gen, rev_pool_gen, num_fwd = 2, num_rev = 2)
   finals = []; rejects = []
