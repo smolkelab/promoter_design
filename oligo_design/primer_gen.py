@@ -158,10 +158,10 @@ def get_seqs(cfg):
   primers = primer_set(cfg)
   for i in range(num_iters):
     primers.evolve_new_seq()
-    if len(primers.seqs) >= num_seqs:
-      break
-  if len(primers.seqs) < num_seqs:
-    return(None)
+    if len(primers.seqs['Full']) >= num_seqs:
+      return(primers)
+  if len(primers.seqs['Full']) < num_seqs:
+    raise Exception(str(num_seqs) + ' primers desired, but ' + str(len(primers.seqs)) + ' found.')
   return(primers)
 
 if __name__ == '__main__':
@@ -184,7 +184,7 @@ if __name__ == '__main__':
 
     print('T_misprime (max): ' + str(worst_t))
     print('Worst misprime sequence: ' + str(worst_seq))
-  print('Sequences generated: ' + str(len(primers.seqs)))
+  print('Sequences generated: ' + str(len(primers.seqs['Full'])))
   if len(sys.argv) > 2:
     df_out = pd.DataFrame(primers.seqs)
-    df.to_csv(sys.argv[2])
+    df_out.to_csv(sys.argv[2], index = False)
