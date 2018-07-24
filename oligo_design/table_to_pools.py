@@ -21,6 +21,11 @@ PAD_LENS = { 'GPD': '25,25', 'ZEV': '58,58' }
 # How long should the pool-specific primer sites be? For GPD, constrained by the lengtb of the promoters vs. the oligos.
 POOL_TOEHOLD_LENS = { 'GPD': '17,17', 'ZEV': '25,25' }
 
+DNA_C = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}
+
+def rc(seq):
+  return(''.join([DNA_C[q] for q in seq])[::-1])
+
 # Copying ConfigParsers properly is a little tricky.
 # Solution cf. https://stackoverflow.com/questions/23416370/manually-building-a-deep-copy-of-a-configparser-in-python-2-7
 def copy_cfg(cfg):
@@ -61,10 +66,39 @@ def start_toeholds_at_line(fn_in, start_toe):
   while True:
     yield(toeholds[curr_toe])
     curr_toe += 1
+    
+name_stem = '>' + '|'.join([params['assembly_id'], str(i), str(j)])
+final_oligos.append((name_stem + '|F', fwd_seq))
+final_oligos.append((name_stem + '|R', rev_seq))
 
-#def table_to_oligos(table)
+# Given a Pandas DF, write the oligos and primers to be synthesized to files.
+# Take reverse complements where needed.
+def table_to_oligos(table, fn_oligo, fn_primer):
+  table_zipped = zip(table['Experiment'],table['pool_id'],table['seq_id'],table['fwd_oligos'],table['rev_oligos'] )
+  prev_exp = None; prev_pool = None
+  with open(fn_oligo, 'w') as fo, open(fn_primer, w') as fp:
+    # handle the constant primers
+    fp.write('>Const|F\n')
+    fp.write(table['fwd_const'][0] + '\n')
+    fp.write('>Const|R\n')
+    fp.write(rc(table['rev_const'][0]) + '\n')
+    for (exp, pool_id, seq_id, fwd_oligo, rev_oligo) in table_zipped:
+      name_stem = '>' + '|'.join([exp, str(pool_id), str(seq_id)])
+      fo.write(name_stem + '|F\n')
+      fo.write(fwd_oligo + '\n')
+      fo.write(name_stem + '|R\n')
+      fo.write(rev_oligo + '\n')
+      if exp != prev_exp or pool_id != prev_pool:
+        oligo_name_stem = '>' + '|'.join([exp, pool_id])
+        fp.write(oligo_name_stem + '|F\n')
+        fp.write(fwd_oligo + '\n')
+        fp.write(oligo_name_stem + '|R\n')
+        fp.write(rc(rev_oligo) + '\n')
+      if exp != prev_exp:
+        prev_exp = exp
+      if prev_pool != pool_id:
+        prev_pool = pool_id
 
-#def table_to_primers(table)
     
 if __name__ == '__main__':
   # load data
@@ -97,7 +131,7 @@ if __name__ == '__main__':
     rejects.extend(rejected)
 
   table_out = pd.concat(tables)
-  table_out.to_csv(os.path.expanduser(cfg.get('Files','oligo_fn')))
+  table_out.to_csv(os.path.expanduser(cfg.get('Files','table_out')))
   #with open(os.path.expanduser(cfg.get('Files','oligo_fn')),'w') as fo:
   #  for name, oligo in finals:
   #    fo.write(name + '\n')
@@ -105,3 +139,4 @@ if __name__ == '__main__':
   with open(os.path.expanduser(cfg.get('Files','rejected_fn')),'w') as fr:
     for seq in rejected:
       fr.write(seq + '\n')
+  table_to_oligos(table_out, os.path.expanduser(cfg.get('Files','oligo_fn')), os.path.expanduser(cfg.get('Files','primer_fn')))

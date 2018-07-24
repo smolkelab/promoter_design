@@ -130,14 +130,15 @@ def build_pools_table(seqs, params):
   # Create a table with columns 'Design', 'gg_start', 'fwd_pool', 'rev_pool'
   dfs = []
   for (i,q) in enumerate(pools):
-    pool_dict = {'Design':[], 'gg_start':[], 'fwd_pool':[],'rev_pool':[], 'Experiment':[],'pool_id':[]}
-    for (seq, g_s) in q:
+    pool_dict = {'Design':[], 'gg_start':[], 'fwd_pool':[],'rev_pool':[], 'Experiment':[],'pool_id':[], 'seq_id':[]}
+    for j,(seq, g_s) in enumerate(q):
       pool_dict['Design'].append(seq)
       pool_dict['gg_start'].append(g_s)
       pool_dict['fwd_pool'].append(fwd_pools[i])
       pool_dict['rev_pool'].append(rev_pools[i])
       pool_dict['Experiment'].append(params['assembly_id'])
       pool_dict['pool_id'].append(i)
+      pool_dict['seq_id'].append(j)
     dfs.append(pd.DataFrame(pool_dict))
   table = pd.concat(dfs)
   
@@ -152,8 +153,8 @@ def fill_one_oligo(tuple_in, params):
   fwd_postfix = fwd_pool # NB: GG site has to be included here!
   rev_prefix = rev_pool # see above
   rev_postfix = params['rev_toehold']
-  fwd_seq = seq[:(gg_start+gg_site_len)]
-  rev_seq = seq[gg_start:]
+  fwd_seq = fwd_prefix + seq[:(gg_start+gg_site_len)] + fwd_postfix
+  rev_seq = rev_prefix + seq[gg_start:] + rev_postfix
   assert(len(fwd_seq) <= oligo_len)
   assert(len(rev_seq) <= oligo_len)
   fwd_seq = safe_pad(fwd_seq, oligo_len - len(fwd_seq), forbidden_site_list, True)
@@ -165,13 +166,15 @@ def fill_pools_table(table, params):
   forbidden_site_list = [params['fwd_gg_cut'], params['rev_gg_cut']]
   oligo_len = int(params['oligo_len'])
   gg_site_len = int(params['gg_site_len'])
-  table_zipped = zip(table['Design'], table['gg_start'], table['fwd_pool'], table['rev_pool'])
+  table_zipped = zip(table['Design'], table['gg_start'], table['fwd_pool'], table['rev_pool'], table['fwd_const'], table['rev_const'])
   fwd_seqs = []; rev_seqs = []
   for q in table_zipped:
     f, r = fill_one_oligo(q, params)
     fwd_seqs.append(f); rev_seqs.append(r)
   table['fwd_oligos'] = fwd_seqs
   table['rev_oligos'] = rev_seqs
+  table['fwd_const'] = params(['fwd_homol']) + params(['fwd_toehold'])
+  table['rev_const'] = params(['rev_toehold']) + params(['rev_homol'])
   return(table)
   
 '''
