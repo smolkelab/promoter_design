@@ -62,6 +62,10 @@ def start_toeholds_at_line(fn_in, start_toe):
     yield(toeholds[curr_toe])
     curr_toe += 1
 
+#def table_to_oligos(table)
+
+#def table_to_primers(table)
+    
 if __name__ == '__main__':
   # load data
   cfg = ConfigParser.RawConfigParser(allow_no_value=True)

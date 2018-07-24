@@ -130,12 +130,14 @@ def build_pools_table(seqs, params):
   # Create a table with columns 'Design', 'gg_start', 'fwd_pool', 'rev_pool'
   dfs = []
   for (i,q) in enumerate(pools):
-    pool_dict = {'Design':[], 'gg_start':[], 'fwd_pool':[],'rev_pool':[]}
+    pool_dict = {'Design':[], 'gg_start':[], 'fwd_pool':[],'rev_pool':[], 'Experiment':[],'pool_id':[]}
     for (seq, g_s) in q:
       pool_dict['Design'].append(seq)
       pool_dict['gg_start'].append(g_s)
       pool_dict['fwd_pool'].append(fwd_pools[i])
       pool_dict['rev_pool'].append(rev_pools[i])
+      pool_dict['Experiment'].append(params['assembly_id'])
+      pool_dict['pool_id'].append(i)
     dfs.append(pd.DataFrame(pool_dict))
   table = pd.concat(dfs)
   
