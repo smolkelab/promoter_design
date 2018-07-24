@@ -83,23 +83,6 @@ class simulate_gg(object):
     assert(fwd_gg == rev_gg)
     return(fwd_seq + fwd_gg + rev_seq, fwd_gg)
 
-  '''def primer_search_pcr(self, template, is_fwd):
-    if is_fwd: 
-      pcrs = [(self.simple_pcr(template, self.consts_f, q), q) for q in self.pools_r]
-      pcrs = [(p,q) for (p,q) in pcrs if p != None]
-    else:
-      pcrs = [(self.simple_pcr(template, q, self.consts_r), q) for q in self.pools_f]
-    pcrs = [(p,q) for (p,q) in pcrs if p != None]
-    print(pcrs)
-    assert(len(pcrs) == 1)
-    return(pcrs[0]) # product, primer tuple'''
-
-  '''def simulate_pair(self, oligo_f, oligo_r):
-    pcr_prod_f, pool_primer_f = self.primer_search_pcr(oligo_f, True)
-    pcr_prod_r, pool_primer_r = self.primer_search_pcr(oligo_r, False)
-    gg_prod, gg_site = self.gg_two_piece(pcr_prod_f, pcr_prod_r)
-    return(pool_primer_f, pool_primer_r, gg_site, gg_prod)'''
-
   def simulate_line(self, fwd_oligo, rev_oligo, pool_fwd, pool_rev, const_fwd, const_rev):
     fwd_prod = self.simple_pcr(fwd_oligo, const_fwd, pool_fwd); assert(fwd_prod != None)
     rev_prod = self.simple_pcr(rev_oligo, pool_rev, const_rev); assert(rev_prod != None)
@@ -134,37 +117,38 @@ class primers_from_oligos_by_name(object): # map oligos to primers by their name
     oligo_name = '|'.join(oligo_name)
     return(self.name_to_primer[oligo_name])
 
-'''def validate_df(df):
-  pool_ids = df['pool_id'].unique()
-  # oligos-wide tests:
-  # "stem" name same for all sequences
-  stem = pd.Series({'stem': [q.split('|')[0] for q in df['pool_id']]})
-  print(stem)
-  print(stem.unique())
-  assert(len(stem.unique()) == 1)
+def validate_df(df, gg_site_len):
+  # df-wide tests:
   # all fwd constants same
-  assert(len(df['const_primer_f'].unique()) == 1)
+  assert(len(df['fwd_const'].unique()) == 1)
   # all rev constants same
-  assert(len(df['const_primer_r'].unique()) == 1)
+  assert(len(df['rev_const'].unique()) == 1)
+  # within-pool tests:
   # break df into pools
-  pools = [df.loc[df['pool_id'] == q,:] for q in pool_ids]
+  exp_pools = zip(df['Experiment'], df['pool_id'])
+  id_set = set()
+  for q in exp_pools:
+    id_set.add(q)
+  pool_ids = list(id_set)
+  pools = [df.loc[df['Experiment'] == p and df['pool_id'] == q,:] for (p,q) in pool_ids]
   # within-pool tests:
   fwds = {'fwds':[]}
   revs = {'revs':[]}
   for pool in pools:
     # all fwd primers same
-    pool_f = pool['pool_primer_f'].unique()
+    pool_f = pool['fwd_pool'].unique()
     assert(len(pool_f) == 1); fwds['fwds'].append(pool_f[0])
     # all rev primers same
-    pool_r = pool['pool_primer_r'].unique()
+    pool_r = pool['rev_pool'].unique()
     assert(len(pool_r) == 1); revs['revs'].append(pool_r[0])
     # all gg sites different
-    assert(len(pool['gg_site'].unique()) == len(pool['gg_site']))
+    pool['gg_seq'] = [p[q:(q+gg_site_len)] for (p,q) in zip(pool['fwd_oligos'], pool['gg_start'])]
+    assert(len(pool['gg_seq'].unique()) == len(pool['gg_seq']))
   # between-pool tests:
   # all fwd distinct
   fwds = pd.Series(fwds); assert(len(fwds.unique()) == len(fwds))
   # all rev distinct
-  revs = pd.Series(revs); assert(len(revs.unique()) == len(revs))'''
+  revs = pd.Series(revs); assert(len(revs.unique()) == len(revs))
 
 # not exhaustive - see validate_df for some other things that should be checked
 def simulate_oligo_file(fn_in, simulator, matcher):
@@ -199,8 +183,10 @@ def main(cfg):
   gg_prods = simulate_oligo_file(fn_in, simulator, matcher)
   table_compare_fn = os.path.expanduser(oligo_design_cfg.get('Files','table_out'))
   table_compare = pd.read_csv(table_compare_fn)
+  len_gg_site = int()
   const_f, const_r = matcher.get_consts(); const_r = rc(const_r)
-
+  gg_site_len = int(oligo_design_cfg.get('Params','gg_site_len'))
+  validate_df(table_compare, gg_site_len)
   for (p,q) in zip(gg_prods, table_compare['Design']):
     expected = const_f + q + const_r
     if p != expected:
