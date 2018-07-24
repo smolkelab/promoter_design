@@ -185,6 +185,5 @@ if __name__ == '__main__':
     print('T_misprime (max): ' + str(worst_t))
     print('Worst misprime sequence: ' + str(worst_seq))
   print('Sequences generated: ' + str(len(primers.seqs['Full'])))
-  if len(sys.argv) > 2:
-    df_out = pd.DataFrame(primers.seqs)
-    df_out.to_csv(sys.argv[2], index = False)
+  df_out = pd.DataFrame(primers.seqs)
+  df_out.to_csv(os.path.expanduser(cfg.get('Files','out_fn')), index = False)

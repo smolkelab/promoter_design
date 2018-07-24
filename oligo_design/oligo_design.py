@@ -71,13 +71,32 @@ class sequence_pool(object):
     rejected = np.array(self.seqs)[np.logical_not(accepted)]
     return(ans, rejected.tolist())
 
+# generate a random pad sequence that won't contain cut sites.
+# Context is required to ensure we don't finish a partial site that started before the pad.
+def safe_pad(seq, pad_len, forbidden_site_list, is_fwd):
+  max_forbid_len = max([len(q) for q in forbidden_site_list])
+  for (i,f) in enumerate(forbidden_site_list): # strip N's from binding sites
+    f = f.strip('N'); assert('N' not in f)
+    forbidden_site_list[i] = f
+    if is_fwd:
+      test_seq = seq + ''.join( np.random.choice(np.array(DNA), size = pad_len, replace = True).tolist() )
+      test_seq_sitecheck = seq[:-(pad_len + max_forbid_len)]
+    else:
+      test_seq = ''.join( np.random.choice(np.array(DNA), size = pad_len, replace = True).tolist() ) + seq
+      test_seq_sitecheck = seq[:(pad_len + max_forbid_len)]
+    if any([q in test_seq_sitecheck for q in forbidden_site_list]):
+      # recursion approach. Keep trying until a forbidden-site-free sequence is generated.
+      return(safe_pad(seq, pad_len, forbidden_site_list, is_fwd))
+    return(test_seq)
+    
+
 def build_pools(seqs, params):
   oligo_len = int(params['oligo_len'])
   gg_site_len = int(params['gg_site_len'])
   fwd_pools = params['fwd_pools']
   rev_pools = params['rev_pools']
-  len_fwd_seq = oligo_len - len(params['fwd_toehold']) - gg_site_len - len(params['fwd_gg_cut']) - len(fwd_pools[0])
-  len_rev_seq = oligo_len - len(params['rev_toehold']) - gg_site_len - len(params['rev_gg_cut']) - len(rev_pools[0])
+  len_fwd_seq = oligo_len - len(params['fwd_toehold']) - gg_site_len - len(fwd_pools[0])
+  len_rev_seq = oligo_len - len(params['rev_toehold']) - gg_site_len - len(rev_pools[0])
   # golden gate site can start at len_seqs - len_rev_seq - len_gg_site; must end at/before len_fwd_seq + len_gg_site
   site_start = len(seqs[0]) - len_rev_seq - gg_site_len
   site_end = len_fwd_seq + gg_site_len
@@ -97,25 +116,26 @@ def build_pools(seqs, params):
 def fill_oligos(pools, params):
   fwd_pools = params['fwd_pools'][:len(pools)]
   rev_pools = params['rev_pools'][:len(pools)]
+  forbidden_site_list = [params['fwd_gg_cut'], params['rev_gg_cut']]
   oligo_len = int(params['oligo_len'])
   gg_site_len = int(params['gg_site_len'])
   final_oligos = [] # fill with (name, seq) tuples
   for i, (pool, fwd_unique, rev_unique) in enumerate(zip(pools, fwd_pools, rev_pools)):
     fwd_prefix = params['fwd_toehold']
-    fwd_postfix = params['fwd_gg_cut'] + fwd_unique
-    rev_prefix = rev_unique + params['rev_gg_cut']
+    fwd_postfix = fwd_unique # NB: GG site has to be included here!
+    rev_prefix = rev_unique # see above
     rev_postfix = params['rev_toehold']
     for j, (seq, g_s) in enumerate(pool):
       # split the sequence by its GG site
       fwd_seq = seq[:(g_s+gg_site_len)]
-      rev_seq = seq[g_s:]
+      rev_seq = seq[g_s:]o
       fwd_seq = fwd_prefix + fwd_seq + fwd_postfix
       rev_seq = rev_prefix + rev_seq + rev_postfix
       assert(len(fwd_seq) <= oligo_len)
       assert(len(rev_seq) <= oligo_len)
       # pad to full length if needed
-      fwd_seq = fwd_seq + ''.join( np.random.choice(np.array(DNA), size = oligo_len - len(fwd_seq), replace = True).tolist() )
-      rev_seq = ''.join( np.random.choice(np.array(DNA), size = oligo_len - len(rev_seq), replace = True).tolist() ) + rev_seq
+      fwd_seq = safe_pad(fwd_seq, oligo_len - len(fwd_seq), forbidden_site_list, True)
+      rev_seq = safe_pad(rev_seq, oligo_len - len(rev_seq), forbidden_site_list, False)
       # naming convention for oligos: assembly id, pool id (number in this assembly), seq id (number in this pool), F/R 
       name_stem = '>' + '|'.join([params['assembly_id'], str(i), str(j)])
       final_oligos.append((name_stem + '|F', fwd_seq))

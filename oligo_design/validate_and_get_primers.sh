@@ -1,0 +1,1 @@
+python validate_and_get_primers.py validate_and_get_primers.cfg
