@@ -26,8 +26,8 @@ def rc(seq):
 
 class simulate_gg(object):
   def __init__(self, fwd_primer_cfg, rev_primer_cfg, oligo_design_cfg):
-    self.fwd_gg_regex = re.compile(oligo_design_cfg.get('Params','fwd_gg_cut').replace('N','.'))
-    self.rev_gg_regex = re.compile(oligo_design_cfg.get('Params','rev_gg_cut').replace('N','.'))
+    self.fwd_gg_regex = re.compile(oligo_design_cfg.get('Params','fwd_gg_cut').strip().replace('N','.'))
+    self.rev_gg_regex = re.compile(oligo_design_cfg.get('Params','rev_gg_cut').strip().replace('N','.'))
     self.consts_f = oligo_design_cfg.get('Params','fwd_homol') + oligo_design_cfg.get('Params','fwd_toehold')
     self.consts_r = oligo_design_cfg.get('Params','rev_toehold') + oligo_design_cfg.get('Params','rev_homol')
     df_f = pd.read_csv(os.path.expanduser( fwd_primer_cfg.get('Files','out_fn') ))
@@ -69,10 +69,8 @@ class simulate_gg(object):
   # Return the part of a sequence amplified by PCR primers (accounting for added bases),
   # or None if no exact matches to template for both sequences
   def simple_pcr(self, template, fwd, rev):
-    f_toe = self._get_toe(fwd); r_toe = self._get_toe(rc(rev))
-    print(f_toe)
-    print(r_toe)
-    print(template)
+    rev = rc(rev)
+    f_toe = self._get_toe(fwd); r_toe = self._get_toe(rev)
     if f_toe not in template or r_toe not in template:
       return(None)
     template = ''.join(template.split(f_toe)[1:])
@@ -101,17 +99,16 @@ class simulate_gg(object):
     pcr_prod_r, pool_primer_r = self.primer_search_pcr(oligo_r, False)
     gg_prod, gg_site = self.gg_two_piece(pcr_prod_f, pcr_prod_r)
     return(pool_primer_f, pool_primer_r, gg_site, gg_prod)'''
-    
+
   def simulate_line(self, fwd_oligo, rev_oligo, pool_fwd, pool_rev, const_fwd, const_rev):
-    fwd_prod = self.simple_pcr(fwd_oligo, const_fwd, pool_rev)
-    rev_prod = self.simple_pcr(rev_oligo, pool_fwd, const_rev)
+    fwd_prod = self.simple_pcr(fwd_oligo, const_fwd, pool_fwd); assert(fwd_prod != None)
+    rev_prod = self.simple_pcr(rev_oligo, pool_rev, const_rev); assert(rev_prod != None)
     gg_prod = self.gg_two_piece(fwd_prod, rev_prod)
-    assert(gg_prod == const_fwd + line_dict['Design'] + rc(const_rev))
-    return(gg_prod)
+    return(gg_prod[0])
 
 class primers_from_oligos_by_name(object): # map oligos to primers by their name
   def __init__(self, oligo_design_cfg):
-    primer_fn = oligo_design_cfg.get('Files','primer_fn')
+    primer_fn = os.path.expanduser(oligo_design_cfg.get('Files','primer_fn'))
     self.name_to_primer = {}
     lines = []
     with open(primer_fn, 'r') as fi:
@@ -122,22 +119,21 @@ class primers_from_oligos_by_name(object): # map oligos to primers by their name
           name = name.split('>')[1] # drop that '>'
           if name == 'Const|F':
             self.const_f = primer
-          elif name == 'Const_R':
+          elif name == 'Const|R':
             self.const_r = primer
           else:
             self.name_to_primer[name] = primer
   def get_consts(self):
     return(self.const_f, self.const_r)
   def match_name(self, oligo_name):
-    oligo_name = name.split('>')[1] # drop that '>'
+    oligo_name = oligo_name.split('>')[1] # drop that '>'
     oligo_name = oligo_name.split('|')
     assert(len(oligo_name) == 4) # experiment, pool, sequence, F/RawConfigParser
     # drop the 'sequence' part
-    oligo_name = oligo_name[:2] + oligo_name[3]
+    oligo_name = oligo_name[:2] + [oligo_name[3]]
     oligo_name = '|'.join(oligo_name)
-    return(self.name_to_primer(oligo_name))
-            
-      
+    return(self.name_to_primer[oligo_name])
+
 '''def validate_df(df):
   pool_ids = df['pool_id'].unique()
   # oligos-wide tests:
@@ -172,16 +168,17 @@ class primers_from_oligos_by_name(object): # map oligos to primers by their name
 
 # not exhaustive - see validate_df for some other things that should be checked
 def simulate_oligo_file(fn_in, simulator, matcher):
-  with open(fn_in 'r') as fi:
-    lines = []
+  with open(fn_in, 'r') as fi:
+    lines = []; gg_prods = []
     for l in fi:
       lines.append(l.strip())
       if len(lines) == 4:
         [fwd_name, fwd_oligo, rev_name, rev_oligo] = lines; lines = []
         pool_fwd = matcher.match_name(fwd_name)
-        pool_fwd = matcher.match_name(rev_name)
-        const_fwd, const_fwd = matcher.get_consts()
-        gg_prod = simulator.simulate_line(fwd_oligo, rev_oligo, pool_fwd, pool_rev, const_fwd, const_rev)
+        pool_rev = matcher.match_name(rev_name)
+        const_fwd, const_rev = matcher.get_consts()
+        gg_prods.append(simulator.simulate_line(fwd_oligo, rev_oligo, pool_fwd, pool_rev, const_fwd, const_rev))
+  return(gg_prods)
 
 def cfg_from_key(cfg_in, key):
   ans = ConfigParser.RawConfigParser(allow_no_value=True); ans.optionxform=str
@@ -199,8 +196,16 @@ def main(cfg):
   matcher = primers_from_oligos_by_name(oligo_design_cfg)
   fn_in = os.path.expanduser(oligo_design_cfg.get('Files','oligo_fn'))
   fn_out = os.path.expanduser(cfg.get('Files','fn_out'))
-  sim_df = simulate_oligo_file(fn_in, simulator, matcher)
-  
+  gg_prods = simulate_oligo_file(fn_in, simulator, matcher)
+  table_compare_fn = os.path.expanduser(oligo_design_cfg.get('Files','table_out'))
+  table_compare = pd.read_csv(table_compare_fn)
+  const_f, const_r = matcher.get_consts(); const_r = rc(const_r)
+
+  for (p,q) in zip(gg_prods, table_compare['Design']):
+    expected = const_f + q + const_r
+    if p != expected:
+      raise Exception('Expected ' + expected + ' but got ' + p)
+  print('All assertions passed.')
 
 if __name__ == '__main__':
   cfg = ConfigParser.RawConfigParser(allow_no_value=True); cfg.optionxform=str
