@@ -101,43 +101,43 @@ class simulate_gg(object):
     pcr_prod_r, pool_primer_r = self.primer_search_pcr(oligo_r, False)
     gg_prod, gg_site = self.gg_two_piece(pcr_prod_f, pcr_prod_r)
     return(pool_primer_f, pool_primer_r, gg_site, gg_prod)'''
-	
+    
   def simulate_line(self, fwd_oligo, rev_oligo, pool_fwd, pool_rev, const_fwd, const_rev):
     fwd_prod = self.simple_pcr(fwd_oligo, const_fwd, pool_rev)
-	rev_prod = self.simple_pcr(rev_oligo, pool_fwd, const_rev)
-	gg_prod = self.gg_two_piece(fwd_prod, rev_prod)
-	assert(gg_prod == const_fwd + line_dict['Design'] + rc(const_rev))
-	return(gg_prod)
+    rev_prod = self.simple_pcr(rev_oligo, pool_fwd, const_rev)
+    gg_prod = self.gg_two_piece(fwd_prod, rev_prod)
+    assert(gg_prod == const_fwd + line_dict['Design'] + rc(const_rev))
+    return(gg_prod)
 
 class primers_from_oligos_by_name(object): # map oligos to primers by their name
   def __init__(self, oligo_design_cfg):
-	primer_fn = oligo_design_cfg.get('Files','primer_fn')
-	self.name_to_primer = {}
-	lines = []
-	with open(primer_fn, 'r') as fi:
-	  for l in fi:
-	    lines.append(l.strip())
-		if len(lines) == 2:
-		  [name, primer] = lines; lines = []
-		  name = name.split('>')[1] # drop that '>'
-		  if name == 'Const|F':
-		    self.const_f = primer
-		  elif name == 'Const_R':
-		    self.const_r = primer
-		  else:
-		    self.name_to_primer[name] = primer
+    primer_fn = oligo_design_cfg.get('Files','primer_fn')
+    self.name_to_primer = {}
+    lines = []
+    with open(primer_fn, 'r') as fi:
+      for l in fi:
+        lines.append(l.strip())
+        if len(lines) == 2:
+          [name, primer] = lines; lines = []
+          name = name.split('>')[1] # drop that '>'
+          if name == 'Const|F':
+            self.const_f = primer
+          elif name == 'Const_R':
+            self.const_r = primer
+          else:
+            self.name_to_primer[name] = primer
   def get_consts(self):
     return(self.const_f, self.const_r)
   def match_name(self, oligo_name):
     oligo_name = name.split('>')[1] # drop that '>'
-	oligo_name = oligo_name.split('|')
-	assert(len(oligo_name) == 4) # experiment, pool, sequence, F/RawConfigParser
-	# drop the 'sequence' part
-	oligo_name = oligo_name[:2] + oligo_name[3]
-	oligo_name = '|'.join(oligo_name)
-	return(self.name_to_primer(oligo_name))
-		    
-	  
+    oligo_name = oligo_name.split('|')
+    assert(len(oligo_name) == 4) # experiment, pool, sequence, F/RawConfigParser
+    # drop the 'sequence' part
+    oligo_name = oligo_name[:2] + oligo_name[3]
+    oligo_name = '|'.join(oligo_name)
+    return(self.name_to_primer(oligo_name))
+            
+      
 '''def validate_df(df):
   pool_ids = df['pool_id'].unique()
   # oligos-wide tests:
@@ -174,14 +174,14 @@ class primers_from_oligos_by_name(object): # map oligos to primers by their name
 def simulate_oligo_file(fn_in, simulator, matcher):
   with open(fn_in 'r') as fi:
     lines = []
-	for l in fi:
-	  lines.append(l.strip())
-	  if len(lines) == 4:
-	    [fwd_name, fwd_oligo, rev_name, rev_oligo] = lines; lines = []
-		pool_fwd = matcher.match_name(fwd_name)
-		pool_fwd = matcher.match_name(rev_name)
-		const_fwd, const_fwd = matcher.get_consts()
-		gg_prod = simulator.simulate_line(fwd_oligo, rev_oligo, pool_fwd, pool_rev, const_fwd, const_rev)
+    for l in fi:
+      lines.append(l.strip())
+      if len(lines) == 4:
+        [fwd_name, fwd_oligo, rev_name, rev_oligo] = lines; lines = []
+        pool_fwd = matcher.match_name(fwd_name)
+        pool_fwd = matcher.match_name(rev_name)
+        const_fwd, const_fwd = matcher.get_consts()
+        gg_prod = simulator.simulate_line(fwd_oligo, rev_oligo, pool_fwd, pool_rev, const_fwd, const_rev)
 
 def cfg_from_key(cfg_in, key):
   ans = ConfigParser.RawConfigParser(allow_no_value=True); ans.optionxform=str
