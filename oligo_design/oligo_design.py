@@ -46,7 +46,7 @@ class sequence_pool(object):
         self.gg_to_bin_id[g] = self.curr_col; self.gg_to_bin_id[self.curr_col] = g
         self.curr_col += 1
       self.gg_mat[seq_id, self.gg_to_bin_id[g]] = True
-          
+
   # assign GGs to sequences; try to assign as many as possible.
   # Heuristic: find the GG used by the fewest sequences, and assign to that one.
   # Take that sequence out of consideration; continue until no remaining bins can be used.
@@ -78,17 +78,17 @@ def safe_pad(seq, pad_len, forbidden_site_list, is_fwd):
   for (i,f) in enumerate(forbidden_site_list): # strip N's from binding sites
     f = f.strip('N'); assert('N' not in f)
     forbidden_site_list[i] = f
-    if is_fwd:
-      test_seq = seq + ''.join( np.random.choice(np.array(DNA), size = pad_len, replace = True).tolist() )
-      test_seq_sitecheck = seq[:-(pad_len + max_forbid_len)]
-    else:
-      test_seq = ''.join( np.random.choice(np.array(DNA), size = pad_len, replace = True).tolist() ) + seq
-      test_seq_sitecheck = seq[:(pad_len + max_forbid_len)]
-    if any([q in test_seq_sitecheck for q in forbidden_site_list]):
-      # recursion approach. Keep trying until a forbidden-site-free sequence is generated.
-      return(safe_pad(seq, pad_len, forbidden_site_list, is_fwd))
-    return(test_seq)
-    
+  if is_fwd:
+    test_seq = seq + ''.join( np.random.choice(np.array(DNA), size = pad_len, replace = True).tolist() )
+    test_seq_sitecheck = test_seq[-(pad_len + max_forbid_len):]
+  else:
+    test_seq = ''.join( np.random.choice(np.array(DNA), size = pad_len, replace = True).tolist() ) + seq
+    test_seq_sitecheck = test_seq[:(pad_len + max_forbid_len)]
+  if any([q in test_seq_sitecheck for q in forbidden_site_list]):
+    # recursion approach. Keep trying until a forbidden-site-free sequence is generated.
+    return(safe_pad(seq, pad_len, forbidden_site_list, is_fwd))
+  return(test_seq)
+
 
 def build_pools(seqs, params):
   oligo_len = int(params['oligo_len'])
@@ -128,7 +128,7 @@ def fill_oligos(pools, params):
     for j, (seq, g_s) in enumerate(pool):
       # split the sequence by its GG site
       fwd_seq = seq[:(g_s+gg_site_len)]
-      rev_seq = seq[g_s:]o
+      rev_seq = seq[g_s:]
       fwd_seq = fwd_prefix + fwd_seq + fwd_postfix
       rev_seq = rev_prefix + rev_seq + rev_postfix
       assert(len(fwd_seq) <= oligo_len)
