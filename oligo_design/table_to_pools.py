@@ -66,40 +66,35 @@ def start_toeholds_at_line(fn_in, start_toe):
   while True:
     yield(toeholds[curr_toe])
     curr_toe += 1
-    
-name_stem = '>' + '|'.join([params['assembly_id'], str(i), str(j)])
-final_oligos.append((name_stem + '|F', fwd_seq))
-final_oligos.append((name_stem + '|R', rev_seq))
 
 # Given a Pandas DF, write the oligos and primers to be synthesized to files.
 # Take reverse complements where needed.
 def table_to_oligos(table, fn_oligo, fn_primer):
-  table_zipped = zip(table['Experiment'],table['pool_id'],table['seq_id'],table['fwd_oligos'],table['rev_oligos'] )
+  table_zipped = zip(table['Experiment'],table['pool_id'],table['seq_id'],table['fwd_oligos'],table['rev_oligos'], table['fwd_pool'], table['rev_pool'] )
   prev_exp = None; prev_pool = None
-  with open(fn_oligo, 'w') as fo, open(fn_primer, w') as fp:
+  with open(fn_oligo, 'w') as fo, open(fn_primer, 'w') as fp:
     # handle the constant primers
     fp.write('>Const|F\n')
-    fp.write(table['fwd_const'][0] + '\n')
+    fp.write(table['fwd_const'].tolist()[0] + '\n')
     fp.write('>Const|R\n')
-    fp.write(rc(table['rev_const'][0]) + '\n')
-    for (exp, pool_id, seq_id, fwd_oligo, rev_oligo) in table_zipped:
+    fp.write(rc(table['rev_const'].tolist()[0]) + '\n')
+    for (exp, pool_id, seq_id, fwd_oligo, rev_oligo, fwd_pool, rev_pool) in table_zipped:
       name_stem = '>' + '|'.join([exp, str(pool_id), str(seq_id)])
       fo.write(name_stem + '|F\n')
       fo.write(fwd_oligo + '\n')
       fo.write(name_stem + '|R\n')
       fo.write(rev_oligo + '\n')
       if exp != prev_exp or pool_id != prev_pool:
-        oligo_name_stem = '>' + '|'.join([exp, pool_id])
+        oligo_name_stem = '>' + '|'.join([exp, str(pool_id)])
         fp.write(oligo_name_stem + '|F\n')
-        fp.write(fwd_oligo + '\n')
+        fp.write(fwd_pool + '\n')
         fp.write(oligo_name_stem + '|R\n')
-        fp.write(rc(rev_oligo) + '\n')
+        fp.write(rc(rev_pool) + '\n')
       if exp != prev_exp:
         prev_exp = exp
       if prev_pool != pool_id:
         prev_pool = pool_id
 
-    
 if __name__ == '__main__':
   # load data
   cfg = ConfigParser.RawConfigParser(allow_no_value=True)
@@ -114,28 +109,21 @@ if __name__ == '__main__':
   start_fwd_pool = int(cfg.get('Pools','fwd_pool_start'))
   fn_rev_pool = os.path.expanduser(cfg.get('Pools', 'rev_pool_fn'))
   start_rev_pool = int(cfg.get('Pools','rev_pool_start'))
-  fwd_pool_gen = start_toeholds_at_line(fn_fwd_pool, start_fwd_pool)  # open the file; start at a specified line
+  fwd_pool_gen = start_toeholds_at_line(fn_fwd_pool, start_fwd_pool)
   rev_pool_gen = start_toeholds_at_line(fn_rev_pool, start_rev_pool)
   for q in pool_names:
     cfgs[q] = customize_cfg(copy_cfg(cfg), dfs[q], q, fwd_pool_gen, rev_pool_gen, num_fwd = 2, num_rev = 2)
-  #finals = []; rejects = []
   tables = []
   rejects = []
   for q in pool_names:
     d = dfs[q]; c = cfgs[q]
     seqs = d['Seq'].tolist()
-    #final_oligos, rejected = oligo_design.seqs_to_oligos(seqs, c)
-    #finals.extend(final_oligos)
     table, rejected = oligo_design.seqs_to_df(seqs, c)
     tables.append(table)
     rejects.extend(rejected)
 
   table_out = pd.concat(tables)
   table_out.to_csv(os.path.expanduser(cfg.get('Files','table_out')))
-  #with open(os.path.expanduser(cfg.get('Files','oligo_fn')),'w') as fo:
-  #  for name, oligo in finals:
-  #    fo.write(name + '\n')
-  #    fo.write(oligo + '\n')
   with open(os.path.expanduser(cfg.get('Files','rejected_fn')),'w') as fr:
     for seq in rejected:
       fr.write(seq + '\n')

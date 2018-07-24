@@ -166,24 +166,17 @@ def fill_pools_table(table, params):
   forbidden_site_list = [params['fwd_gg_cut'], params['rev_gg_cut']]
   oligo_len = int(params['oligo_len'])
   gg_site_len = int(params['gg_site_len'])
-  table_zipped = zip(table['Design'], table['gg_start'], table['fwd_pool'], table['rev_pool'], table['fwd_const'], table['rev_const'])
+  table_zipped = zip(table['Design'], table['gg_start'], table['fwd_pool'], table['rev_pool'])
   fwd_seqs = []; rev_seqs = []
   for q in table_zipped:
     f, r = fill_one_oligo(q, params)
     fwd_seqs.append(f); rev_seqs.append(r)
   table['fwd_oligos'] = fwd_seqs
   table['rev_oligos'] = rev_seqs
-  table['fwd_const'] = params(['fwd_homol']) + params(['fwd_toehold'])
-  table['rev_const'] = params(['rev_toehold']) + params(['rev_homol'])
+  table['fwd_const'] = [params['fwd_homol'] + params['fwd_toehold']]*table.shape[0]
+  table['rev_const'] = [params['rev_toehold'] + params['rev_homol']]*table.shape[0]
   return(table)
-  
-'''
-      # naming convention for oligos: assembly id, pool id (number in this assembly), seq id (number in this pool), F/R 
-      name_stem = '>' + '|'.join([params['assembly_id'], str(i), str(j)])
-      final_oligos.append((name_stem + '|F', fwd_seq))
-      final_oligos.append((name_stem + '|R', rev_seq))
-  return(final_oligos)'''
-    
+
 # For modularity: given a list of sequences and a config, get the output table as a Pandas DataFrame.
 def seqs_to_df(seqs, cfg):
   assert(all([len(q) == len(seqs[0]) for q in seqs]))
