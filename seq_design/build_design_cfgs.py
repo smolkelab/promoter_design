@@ -78,7 +78,7 @@ if __name__ == '__main__':
     cfg.set('Params','THRESH', THRESHOLDS['|'.join([promoter, objective, strategy])])
     cfg.set('Params','NUM_SEQS_FINAL','120')
     cfg.set('Params','PICK_TOP','True')
-    cfg.set('Params','NUM_MUTATIONS','5:50,3:30,1:20')
+    cfg.set('Params','NUM_MUTATIONS','20:50,10:30,2:20')
     cfg.set('Params','KEEP_PARENT','True:80,False:20')
     cfg.write(open(os.path.join('designs',fn_stem + '.cfg'), 'w'))
     script = 'nohup time python ../' + STRATEGIES[strategy][2] + ' ' + fn_stem + '.cfg > ~/facs-seq_test/seq_designs/logs/' + fn_stem + '.log &\n'
