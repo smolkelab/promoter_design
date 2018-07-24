@@ -66,10 +66,19 @@ def start_toeholds_at_line(fn_in, start_toe):
   while True:
     yield(toeholds[curr_toe])
     curr_toe += 1
-
+	
+def toe_to_full_dict(fn_in):
+  df = pd.read_csv(fn_in)
+  toeholds = df['Toehold'].tolist()
+  fulls = df['Full'].tolist()
+  return(dict(zip(toeholds, fulls)))
+	
 # Given a Pandas DF, write the oligos and primers to be synthesized to files.
 # Take reverse complements where needed.
-def table_to_oligos(table, fn_oligo, fn_primer):
+def table_to_oligos(table, fn_oligo, fn_primer, fn_fwd_pool, fn_rev_pool):
+  # setup to map oligo toeholds to full sequences
+  fwd_dict = toe_to_full_dict(fn_fwd_pool)
+  rev_dict = toe_to_full_dict(fn_rev_pool)
   table_zipped = zip(table['Experiment'],table['pool_id'],table['seq_id'],table['fwd_oligos'],table['rev_oligos'], table['fwd_pool'], table['rev_pool'] )
   prev_exp = None; prev_pool = None
   with open(fn_oligo, 'w') as fo, open(fn_primer, 'w') as fp:
@@ -87,9 +96,9 @@ def table_to_oligos(table, fn_oligo, fn_primer):
       if exp != prev_exp or pool_id != prev_pool:
         oligo_name_stem = '>' + '|'.join([exp, str(pool_id)])
         fp.write(oligo_name_stem + '|F\n')
-        fp.write(fwd_pool + '\n')
+        fp.write(rc(fwd_dict[fwd_pool]) + '\n')
         fp.write(oligo_name_stem + '|R\n')
-        fp.write(rc(rev_pool) + '\n')
+        fp.write(rev_dict[rev_pool] + '\n')
       if exp != prev_exp:
         prev_exp = exp
       if prev_pool != pool_id:
@@ -127,4 +136,4 @@ if __name__ == '__main__':
   with open(os.path.expanduser(cfg.get('Files','rejected_fn')),'w') as fr:
     for seq in rejected:
       fr.write(seq + '\n')
-  table_to_oligos(table_out, os.path.expanduser(cfg.get('Files','oligo_fn')), os.path.expanduser(cfg.get('Files','primer_fn')))
+  table_to_oligos(table_out, os.path.expanduser(cfg.get('Files','oligo_fn')), os.path.expanduser(cfg.get('Files','primer_fn')), fn_fwd_pool, fn_rev_pool)
