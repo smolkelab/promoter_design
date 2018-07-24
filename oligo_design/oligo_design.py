@@ -1,9 +1,22 @@
 # given list of target seqs (col. headed 'Seqs' in CSV), 
 # config containing: constant pad positions to remove from both ends, required len. of oligo, number of pools, 
-# get .fa file with oligos needed to build seq, .fa file with oligos needed to order (e.g. PCR), table of PCR primers for each pool
+# get DF with columns:
+# pool_id: name of pool
+# seq_id: name of this sequence within the pool
+# oligo_f: 'fwd' oligo to synthesize
+# oligo_r: 'rev' oligo to synthesize
+# pool_primer_f: 'fwd' primer for 'this' pool (binds oligo_r) (+)
+# pool_primer_r: 'rev' primer for 'this' pool (binds oligo_f) (+) (!)
+# gg_site: golden gate site for this construct
+# gg_prod: final output of the construct
+# const_primer_f: constant forward primer (binds oligo_f)
+# const_primer_r: constant reverse primer (binds oligo_r)
+
+# Process this DF with methods in 'validate_and_get_primers.py'
+
 import sys
 import os
-import pandas
+import pandas as pd
 import numpy as np
 import random
 from numpy.random import choice
@@ -70,7 +83,7 @@ class sequence_pool(object):
       ans.append((seq, g_s))
     rejected = np.array(self.seqs)[np.logical_not(accepted)]
     return(ans, rejected.tolist())
-
+    
 # generate a random pad sequence that won't contain cut sites.
 # Context is required to ensure we don't finish a partial site that started before the pad.
 def safe_pad(seq, pad_len, forbidden_site_list, is_fwd):
@@ -89,8 +102,8 @@ def safe_pad(seq, pad_len, forbidden_site_list, is_fwd):
     return(safe_pad(seq, pad_len, forbidden_site_list, is_fwd))
   return(test_seq)
 
-
-def build_pools(seqs, params):
+# Given a list of sequences and a dictionary of params, get the output table as a Pandas DataFrame.
+def build_pools_table(seqs, params):
   oligo_len = int(params['oligo_len'])
   gg_site_len = int(params['gg_site_len'])
   fwd_pools = params['fwd_pools']
@@ -110,40 +123,64 @@ def build_pools(seqs, params):
       this_pool.add(s)
     ans, seqs = this_pool.assign_seqs()
     pools.append(ans)
-  return(pools, seqs) # 'seqs' is now the rejected sequences
+  ### Build the output DataFrame from 'pools' ###
+  # 'pools' is a list of lists of tuples; each inner ('pool') list corresponds to a pool.
+  # Each pool list contains tuples (seq, g_s); each 'seq' is an original sequence
+  # (the thing to be constructed, without any padding), each 'g_s' is the starting position for the GG site.
+  # Create a table with columns 'Design', 'gg_start', 'fwd_pool', 'rev_pool'
+  dfs = []
+  for (i,q) in enumerate(pools):
+    pool_dict = {'Design':[], 'gg_start':[], 'fwd_pool':[],'rev_pool':[]}
+    for (seq, g_s) in q:
+      pool_dict['Design'].append(seq)
+      pool_dict['gg_start'].append(g_s)
+      pool_dict['fwd_pool'].append(fwd_pools[i])
+      pool_dict['rev_pool'].append(rev_pools[i])
+    dfs.append(pd.DataFrame(pool_dict))
+  table = pd.concat(dfs)
+  
+  return(table, seqs) # 'seqs' is now the rejected sequences
+
+def fill_one_oligo(tuple_in, params):
+  seq, gg_start, fwd_pool, rev_pool = tuple_in
+  oligo_len = int(params['oligo_len'])
+  gg_site_len = int(params['gg_site_len'])
+  forbidden_site_list = [params['fwd_gg_cut'], params['rev_gg_cut']]
+  fwd_prefix = params['fwd_toehold']
+  fwd_postfix = fwd_pool # NB: GG site has to be included here!
+  rev_prefix = rev_pool # see above
+  rev_postfix = params['rev_toehold']
+  fwd_seq = seq[:(gg_start+gg_site_len)]
+  rev_seq = seq[gg_start:]
+  assert(len(fwd_seq) <= oligo_len)
+  assert(len(rev_seq) <= oligo_len)
+  fwd_seq = safe_pad(fwd_seq, oligo_len - len(fwd_seq), forbidden_site_list, True)
+  rev_seq = safe_pad(rev_seq, oligo_len - len(rev_seq), forbidden_site_list, False)
+  return(fwd_seq, rev_seq)
 
 # create final oligos; add PCR regions and padding if needed
-def fill_oligos(pools, params):
-  fwd_pools = params['fwd_pools'][:len(pools)]
-  rev_pools = params['rev_pools'][:len(pools)]
+def fill_pools_table(table, params):
   forbidden_site_list = [params['fwd_gg_cut'], params['rev_gg_cut']]
   oligo_len = int(params['oligo_len'])
   gg_site_len = int(params['gg_site_len'])
-  final_oligos = [] # fill with (name, seq) tuples
-  for i, (pool, fwd_unique, rev_unique) in enumerate(zip(pools, fwd_pools, rev_pools)):
-    fwd_prefix = params['fwd_toehold']
-    fwd_postfix = fwd_unique # NB: GG site has to be included here!
-    rev_prefix = rev_unique # see above
-    rev_postfix = params['rev_toehold']
-    for j, (seq, g_s) in enumerate(pool):
-      # split the sequence by its GG site
-      fwd_seq = seq[:(g_s+gg_site_len)]
-      rev_seq = seq[g_s:]
-      fwd_seq = fwd_prefix + fwd_seq + fwd_postfix
-      rev_seq = rev_prefix + rev_seq + rev_postfix
-      assert(len(fwd_seq) <= oligo_len)
-      assert(len(rev_seq) <= oligo_len)
-      # pad to full length if needed
-      fwd_seq = safe_pad(fwd_seq, oligo_len - len(fwd_seq), forbidden_site_list, True)
-      rev_seq = safe_pad(rev_seq, oligo_len - len(rev_seq), forbidden_site_list, False)
+  table_zipped = zip(table['Design'], table['gg_start'], table['fwd_pool'], table['rev_pool'])
+  fwd_seqs = []; rev_seqs = []
+  for q in table_zipped:
+    f, r = fill_one_oligo(q)
+    fwd_seqs.append(f); rev_seqs.append(r)
+  table['fwd_oligos'] = fwd_seqs
+  table['rev_oligos'] = rev_seqs
+  return(table)
+  
+'''
       # naming convention for oligos: assembly id, pool id (number in this assembly), seq id (number in this pool), F/R 
       name_stem = '>' + '|'.join([params['assembly_id'], str(i), str(j)])
       final_oligos.append((name_stem + '|F', fwd_seq))
       final_oligos.append((name_stem + '|R', rev_seq))
-  return(final_oligos)
-
-# For modularity: given a list of sequences and a config, get the 'final oligos' output.
-def seqs_to_oligos(seqs, cfg):
+  return(final_oligos)'''
+    
+# For modularity: given a list of sequences and a config, get the output table as a Pandas DataFrame.
+def seqs_to_df(seqs, cfg):
   assert(all([len(q) == len(seqs[0]) for q in seqs]))
   params = dict(cfg.items('Params'))
   random_seed = int(params['random_seed'])
@@ -158,18 +195,23 @@ def seqs_to_oligos(seqs, cfg):
   assert(all([len(q) == len(fwd_pools[0]) for q in fwd_pools]))
   assert(all([len(q) == len(rev_pools[0]) for q in rev_pools]))
   params['fwd_pools'] = fwd_pools; params['rev_pools'] = rev_pools
-  pools, rejected = build_pools(seqs, params)
-  final_oligos = fill_oligos(pools, params)
-  return(final_oligos, rejected)
-  
+  #pools, rejected = build_pools(seqs, params)
+  #final_oligos = fill_oligos(pools, params)
+  oligo_table, rejected = build_pools_table(seqs, params)
+  oligo_table = fill_pools_table(oligo_table)
+  return(oligo_table, rejected)
+  #return(final_oligos, rejected)
+
 def main(cfg):
-  seqs = list(pandas.read_csv(os.path.expanduser(cfg.get('Files','selected_fn')))['Seqs'])
-  final_oligos, rejected = seqs_to_oligos(seqs, cfg)
+  seqs = list(pd.read_csv(os.path.expanduser(cfg.get('Files','selected_fn')))['Seqs'])
+  oligo_table, rejected = seqs_to_oligos(seqs, cfg)
+  fo = os.path.expanduser(cfg.get('Files','oligo_fn'))
+  oligo_table.to_csv(fo)
   
-  with open(os.path.expanduser(cfg.get('Files','oligo_fn')),'w') as fo:
+  '''with open(os.path.expanduser(cfg.get('Files','oligo_fn')),'w') as fo:
     for name, oligo in final_oligos:
       fo.write(name + '\n')
-      fo.write(oligo + '\n')
+      fo.write(oligo + '\n')'''
   with open(os.path.expanduser(cfg.get('Files','rejected_fn')),'w') as fr:
     for seq in rejected:
       fr.write(seq + '\n')
