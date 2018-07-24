@@ -80,18 +80,24 @@ if __name__ == '__main__':
   rev_pool_gen = start_toeholds_at_line(fn_rev_pool, start_rev_pool)
   for q in pool_names:
     cfgs[q] = customize_cfg(copy_cfg(cfg), dfs[q], q, fwd_pool_gen, rev_pool_gen, num_fwd = 2, num_rev = 2)
-  finals = []; rejects = []
+  #finals = []; rejects = []
+  tables = []
+  rejects = []
   for q in pool_names:
     d = dfs[q]; c = cfgs[q]
     seqs = d['Seq'].tolist()
-    final_oligos, rejected = oligo_design.seqs_to_oligos(seqs, c)
-    finals.extend(final_oligos)
+    #final_oligos, rejected = oligo_design.seqs_to_oligos(seqs, c)
+    #finals.extend(final_oligos)
+    table, rejected = oligo_design.seqs_to_df(seqs, c)
+    tables.append(table)
     rejects.extend(rejected)
 
-  with open(os.path.expanduser(cfg.get('Files','oligo_fn')),'w') as fo:
-    for name, oligo in finals:
-      fo.write(name + '\n')
-      fo.write(oligo + '\n')
+  table_out = pd.concat(tables)
+  table_out.to_csv(os.path.expanduser(cfg.get('Files','oligo_fn')))
+  #with open(os.path.expanduser(cfg.get('Files','oligo_fn')),'w') as fo:
+  #  for name, oligo in finals:
+  #    fo.write(name + '\n')
+  #    fo.write(oligo + '\n')
   with open(os.path.expanduser(cfg.get('Files','rejected_fn')),'w') as fr:
     for seq in rejected:
       fr.write(seq + '\n')

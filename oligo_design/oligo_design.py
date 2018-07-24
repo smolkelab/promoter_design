@@ -166,7 +166,7 @@ def fill_pools_table(table, params):
   table_zipped = zip(table['Design'], table['gg_start'], table['fwd_pool'], table['rev_pool'])
   fwd_seqs = []; rev_seqs = []
   for q in table_zipped:
-    f, r = fill_one_oligo(q)
+    f, r = fill_one_oligo(q, params)
     fwd_seqs.append(f); rev_seqs.append(r)
   table['fwd_oligos'] = fwd_seqs
   table['rev_oligos'] = rev_seqs
@@ -198,7 +198,7 @@ def seqs_to_df(seqs, cfg):
   #pools, rejected = build_pools(seqs, params)
   #final_oligos = fill_oligos(pools, params)
   oligo_table, rejected = build_pools_table(seqs, params)
-  oligo_table = fill_pools_table(oligo_table)
+  oligo_table = fill_pools_table(oligo_table, params)
   return(oligo_table, rejected)
   #return(final_oligos, rejected)
 
