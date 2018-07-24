@@ -14,7 +14,6 @@ import pandas as pd
 import ConfigParser
 import StringIO
 import oligo_design
-import primer_gen
 
 # All sequences will be padded for modeling purposes. We need to remove this pads; different libraries have different lengths.
 PAD_LENS = { 'GPD': '25,25', 'ZEV': '58,58' }

@@ -18,6 +18,10 @@ import ConfigParser
 import re
 import pandas as pd
 
+# Just let me do my job, guys
+# cf. https://stackoverflow.com/questions/20625582/how-to-deal-with-settingwithcopywarning-in-pandas
+pd.options.mode.chained_assignment = None
+
 DNA = ['A','C','G','T']
 DNA_C = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}
 
@@ -133,26 +137,27 @@ def validate_df(df, gg_site_len):
   pool_ids = list(id_set)
   pools = [df.loc[df['exp_pools'] == q,:] for q in pool_ids]
   # within-pool tests:
-  fwds = {'fwds':[]}
-  revs = {'revs':[]}
+  fwds = []
+  revs = []
   for pool in pools:
-    print(pool['exp_pools'].tolist()[0])
     # all fwd primers same
     pool_f = pool['fwd_pool'].unique()
-    assert(len(pool_f) == 1); fwds['fwds'].append(pool_f[0])
+    assert(len(pool_f) == 1); fwds.append(pool_f[0])
     # all rev primers same
     pool_r = pool['rev_pool'].unique()
-    assert(len(pool_r) == 1); revs['revs'].append(pool_r[0])
+    assert(len(pool_r) == 1); revs.append(pool_r[0])
     # all gg sites different
-    pool['gg_seq'] = [p[q:(q+gg_site_len)] for (p,q) in zip(pool['fwd_oligos'], pool['gg_start'])]
-    print(pool['gg_seq'])
-    print(pool['gg_seq'].unique())
+    fwd_list = pool['fwd_oligos'].tolist()
+    start_list = pool['gg_start'].tolist()
+    gg_seqs = [p[q:(q+gg_site_len)] for (p,q) in zip(fwd_list, start_list)]
+    pool['gg_seq'] = gg_seqs # this would normally raise a warning (for chained indexing from the original 'df'), which we suppress.
+    assert(all([p == q for (p,q) in zip(pool['gg_seq'], pool['gg_site_seq'])]))
     assert(len(pool['gg_seq'].unique()) == len(pool['gg_seq']))
   # between-pool tests:
   # all fwd distinct
-  fwds = pd.Series(fwds); assert(len(fwds.unique()) == len(fwds))
+  assert(len(fwds) == len(set(fwds)))
   # all rev distinct
-  revs = pd.Series(revs); assert(len(revs.unique()) == len(revs))
+  assert(len(revs) == len(set(revs)))
 
 # not exhaustive - see validate_df for some other things that should be checked
 def simulate_oligo_file(fn_in, simulator, matcher):

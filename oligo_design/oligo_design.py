@@ -80,7 +80,7 @@ class sequence_pool(object):
       # get the actual seq and starting position
       seq = self.seqs[seq_id]
       g_s = self.seq_to_useable_ggs[seq][g]
-      ans.append((seq, g_s))
+      ans.append((seq, g_s, g))
     rejected = np.array(self.seqs)[np.logical_not(accepted)]
     return(ans, rejected.tolist())
     
@@ -130,10 +130,11 @@ def build_pools_table(seqs, params):
   # Create a table with columns 'Design', 'gg_start', 'fwd_pool', 'rev_pool'
   dfs = []
   for (i,q) in enumerate(pools):
-    pool_dict = {'Design':[], 'gg_start':[], 'fwd_pool':[],'rev_pool':[], 'Experiment':[],'pool_id':[], 'seq_id':[]}
-    for j,(seq, g_s) in enumerate(q):
+    pool_dict = {'Design':[], 'gg_start':[], 'fwd_pool':[],'rev_pool':[], 'Experiment':[],'pool_id':[], 'seq_id':[], 'gg_site_seq':[]}
+    for j,(seq, g_s, g) in enumerate(q):
       pool_dict['Design'].append(seq)
       pool_dict['gg_start'].append(g_s)
+      pool_dict['gg_site_seq'].append(g)
       pool_dict['fwd_pool'].append(fwd_pools[i])
       pool_dict['rev_pool'].append(rev_pools[i])
       pool_dict['Experiment'].append(params['assembly_id'])
@@ -175,6 +176,8 @@ def fill_pools_table(table, params):
   table['rev_oligos'] = rev_seqs
   table['fwd_const'] = [params['fwd_homol'] + params['fwd_toehold']]*table.shape[0]
   table['rev_const'] = [params['rev_toehold'] + params['rev_homol']]*table.shape[0]
+  # Now that we've added bases to the fwd oligo, we need to update 'gg_start' to compensate.
+  table['gg_start'] = [q + len(params['fwd_toehold']) for q in table['gg_start']]
   return(table)
 
 # For modularity: given a list of sequences and a config, get the output table as a Pandas DataFrame.
