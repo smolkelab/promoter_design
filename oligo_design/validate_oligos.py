@@ -125,16 +125,18 @@ def validate_df(df, gg_site_len):
   assert(len(df['rev_const'].unique()) == 1)
   # within-pool tests:
   # break df into pools
-  exp_pools = zip(df['Experiment'], df['pool_id'])
+  exp_pools = ['|'.join([p,str(q)]) for (p,q) in zip(df['Experiment'], df['pool_id'])]
+  df['exp_pools'] = exp_pools
   id_set = set()
   for q in exp_pools:
     id_set.add(q)
   pool_ids = list(id_set)
-  pools = [df.loc[df['Experiment'] == p and df['pool_id'] == q,:] for (p,q) in pool_ids]
+  pools = [df.loc[df['exp_pools'] == q,:] for q in pool_ids]
   # within-pool tests:
   fwds = {'fwds':[]}
   revs = {'revs':[]}
   for pool in pools:
+    print(pool['exp_pools'].tolist()[0])
     # all fwd primers same
     pool_f = pool['fwd_pool'].unique()
     assert(len(pool_f) == 1); fwds['fwds'].append(pool_f[0])
@@ -143,6 +145,8 @@ def validate_df(df, gg_site_len):
     assert(len(pool_r) == 1); revs['revs'].append(pool_r[0])
     # all gg sites different
     pool['gg_seq'] = [p[q:(q+gg_site_len)] for (p,q) in zip(pool['fwd_oligos'], pool['gg_start'])]
+    print(pool['gg_seq'])
+    print(pool['gg_seq'].unique())
     assert(len(pool['gg_seq'].unique()) == len(pool['gg_seq']))
   # between-pool tests:
   # all fwd distinct
