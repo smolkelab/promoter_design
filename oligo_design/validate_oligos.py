@@ -36,9 +36,9 @@ class simulate_gg(object):
     self.pools_r = df_r['Full'].tolist()
     self._toedict = {self.consts_f: oligo_design_cfg.get('Params','fwd_toehold'),
                      self.consts_r: oligo_design_cfg.get('Params','rev_toehold')}
-    for (p,q) in zip(df_f['Toehold'], self.pools_f):
+    for (p,q) in zip(df_f['Toehold'], df_f['Full']):
       self._toedict[q] = p
-    for (p,q) in zip(df_r['Toehold'], self.pools_r):
+    for (p,q) in zip(df_r['Toehold'], df_r['Full']):
       self._toedict[q] = p
 
   def _get_toe(self, full):
@@ -69,7 +69,7 @@ class simulate_gg(object):
   # Return the part of a sequence amplified by PCR primers (accounting for added bases),
   # or None if no exact matches to template for both sequences
   def simple_pcr(self, template, fwd, rev):
-    f_toe = self._get_toe(fwd); r_toe = self._get_toe(rev)
+    f_toe = self._get_toe(fwd); r_toe = self._get_toe(rc(rev))
     print(f_toe)
     print(r_toe)
     print(template)
@@ -85,7 +85,7 @@ class simulate_gg(object):
     assert(fwd_gg == rev_gg)
     return(fwd_seq + fwd_gg + rev_seq, fwd_gg)
 
-  def primer_search_pcr(self, template, is_fwd):
+  '''def primer_search_pcr(self, template, is_fwd):
     if is_fwd: 
       pcrs = [(self.simple_pcr(template, self.consts_f, q), q) for q in self.pools_r]
       pcrs = [(p,q) for (p,q) in pcrs if p != None]
@@ -94,60 +94,52 @@ class simulate_gg(object):
     pcrs = [(p,q) for (p,q) in pcrs if p != None]
     print(pcrs)
     assert(len(pcrs) == 1)
-    return(pcrs[0]) # product, primer tuple
+    return(pcrs[0]) # product, primer tuple'''
 
-  def simulate_pair(self, oligo_f, oligo_r):
+  '''def simulate_pair(self, oligo_f, oligo_r):
     pcr_prod_f, pool_primer_f = self.primer_search_pcr(oligo_f, True)
     pcr_prod_r, pool_primer_r = self.primer_search_pcr(oligo_r, False)
     gg_prod, gg_site = self.gg_two_piece(pcr_prod_f, pcr_prod_r)
-    return(pool_primer_f, pool_primer_r, gg_site, gg_prod)
+    return(pool_primer_f, pool_primer_r, gg_site, gg_prod)'''
+	
+  def simulate_line(self, fwd_oligo, rev_oligo, pool_fwd, pool_rev, const_fwd, const_rev):
+    fwd_prod = self.simple_pcr(fwd_oligo, const_fwd, pool_rev)
+	rev_prod = self.simple_pcr(rev_oligo, pool_fwd, const_rev)
+	gg_prod = self.gg_two_piece(fwd_prod, rev_prod)
+	assert(gg_prod == const_fwd + line_dict['Design'] + rc(const_rev))
+	return(gg_prod)
 
-def extract_from_oligo_pair(lines):
-  [name_f, oligo_f, name_r, oligo_r] = lines
-  assert(name_f[-2:] == '|F'); assert(name_r[-2:] == '|R')
-  name_f = name_f[:-2]; name_r = name_r[:-2]
-  assert(name_f == name_r)
-  name = name_f.split('|'); assert(len(name) == 3)
-  pool_id = '|'.join(name[:2])
-  return(pool_id, name[2], oligo_f, oligo_r) # pool ID, sequence ID within pool, oligos
-
-def simulate_oligo_file(fn_in, simulator):
-  lines = []
-  pool_ids = []
-  seq_ids = []
-  oligos_f = []
-  oligos_r = []
-  pool_primers_f = []
-  pool_primers_r = []
-  gg_sites = []
-  gg_prods = []
-  print(fn_in)
-  with open(fn_in, 'r') as fi:
-    for l in fi:
-      l = l.strip()
-      print(l)
-      lines.append(l)
-      if len(lines) == 4:
-        pool_id, seq_id, oligo_f, oligo_r = extract_from_oligo_pair(lines); lines = []
-        pool_primer_f, pool_primer_r, gg_site, gg_prod = simulator.simulate_pair(oligo_f, oligo_r)
-        pool_ids.append(pool_id)
-        seq_ids.append(seq_id)
-        oligos_f.append(oligo_f)
-        oligos_r.append(oligo_r)
-        pool_primers_f.append(pool_primer_f)
-        pool_primers_r.append(pool_primer_r)
-        gg_sites.append(gg_site)
-        gg_prods.append(gg_prod)
-  consts_f = [simulator.consts_f]*len(pool_ids)
-  consts_r = [simulator.consts_r]*len(pool_ids)
-  ans = {'pool_id': pool_ids, 'seq_id': seq_ids, 'oligo_f': oligos_f, 'oligo_r': oligos_r, 'pool_primer_f': pool_primers_f,
-           'pool_primer_r': pool_primers_r, 'gg_site': gg_sites, 'gg_prod': gg_prods, 'const_primer_f': consts_f, 'const_primer_r': consts_r}
-  return(pd.DataFrame(ans))
-
-def validate_df(df):
-  print(df)
+class primers_from_oligos_by_name(object): # map oligos to primers by their name
+  def __init__(self, oligo_design_cfg):
+	primer_fn = oligo_design_cfg.get('Files','primer_fn')
+	self.name_to_primer = {}
+	lines = []
+	with open(primer_fn, 'r') as fi:
+	  for l in fi:
+	    lines.append(l.strip())
+		if len(lines) == 2:
+		  [name, primer] = lines; lines = []
+		  name = name.split('>')[1] # drop that '>'
+		  if name == 'Const|F':
+		    self.const_f = primer
+		  elif name == 'Const_R':
+		    self.const_r = primer
+		  else:
+		    self.name_to_primer[name] = primer
+  def get_consts(self):
+    return(self.const_f, self.const_r)
+  def match_name(self, oligo_name):
+    oligo_name = name.split('>')[1] # drop that '>'
+	oligo_name = oligo_name.split('|')
+	assert(len(oligo_name) == 4) # experiment, pool, sequence, F/RawConfigParser
+	# drop the 'sequence' part
+	oligo_name = oligo_name[:2] + oligo_name[3]
+	oligo_name = '|'.join(oligo_name)
+	return(self.name_to_primer(oligo_name))
+		    
+	  
+'''def validate_df(df):
   pool_ids = df['pool_id'].unique()
-  print(pool_ids)
   # oligos-wide tests:
   # "stem" name same for all sequences
   stem = pd.Series({'stem': [q.split('|')[0] for q in df['pool_id']]})
@@ -176,30 +168,20 @@ def validate_df(df):
   # all fwd distinct
   fwds = pd.Series(fwds); assert(len(fwds.unique()) == len(fwds))
   # all rev distinct
-  revs = pd.Series(revs); assert(len(revs.unique()) == len(revs))
-  
-def validate_and_generate_oligo_fasta(df, fn_out):
-  validate_df(df)
-  stem = df['pool_ids'][0].split('|')[0]
-  # constant oligos
-  const_f = df['const_primer_f'][0]
-  const_r = df['const_primer_r'][0]
-  # aggregate pools
-  pool_ids = df['pool_id'].unique()
-  pool_ids.sort()
-  pools_collected = {}
-  for q in pool_ids:
-    primer_f = df.loc[df['pool_id'] == q,'pool_primer_f'][0]
-    primer_r = df.loc[df['pool_id'] == q,'pool_primer_r'][0]
-    pools_collected[q] = {'primer_f':primer_f, 'primer_r':primer_r}
-  with open(fn_out, 'w') as fo:
-    # constant oligos
-    fo.write('>' + stem + '|const_f' + '\n'); fo.write(const_f + '\n')
-    fo.write('>' + stem + '|const_r' + '\n'); fo.write(rc(const_r) + '\n')
-    # pools
-    for q in pool_ids:
-      fo.write('>' + q + '|pool_f\n'); fo.write(pools_collected[q]['primer_f'] +'\n' )
-      fo.write('>' + q + '|pool_r\n'); fo.write(rc(pools_collected[q]['primer_r']) +'\n' )
+  revs = pd.Series(revs); assert(len(revs.unique()) == len(revs))'''
+
+# not exhaustive - see validate_df for some other things that should be checked
+def simulate_oligo_file(fn_in, simulator, matcher):
+  with open(fn_in 'r') as fi:
+    lines = []
+	for l in fi:
+	  lines.append(l.strip())
+	  if len(lines) == 4:
+	    [fwd_name, fwd_oligo, rev_name, rev_oligo] = lines; lines = []
+		pool_fwd = matcher.match_name(fwd_name)
+		pool_fwd = matcher.match_name(rev_name)
+		const_fwd, const_fwd = matcher.get_consts()
+		gg_prod = simulator.simulate_line(fwd_oligo, rev_oligo, pool_fwd, pool_rev, const_fwd, const_rev)
 
 def cfg_from_key(cfg_in, key):
   ans = ConfigParser.RawConfigParser(allow_no_value=True); ans.optionxform=str
@@ -210,19 +192,15 @@ def cfg_from_key(cfg_in, key):
 def get_simulator(cfg):
   fwd_primer_cfg, rev_primer_cfg, oligo_design_cfg = [cfg_from_key(cfg, q) for q in ['fwd_primer_cfg', 'rev_primer_cfg', 'oligo_design_cfg']]
   return( simulate_gg(fwd_primer_cfg, rev_primer_cfg, oligo_design_cfg) )
-
+  
 def main(cfg):
   simulator = get_simulator(cfg)
   oligo_design_cfg = cfg_from_key(cfg, 'oligo_design_cfg')
+  matcher = primers_from_oligos_by_name(oligo_design_cfg)
   fn_in = os.path.expanduser(oligo_design_cfg.get('Files','oligo_fn'))
   fn_out = os.path.expanduser(cfg.get('Files','fn_out'))
-  sim_df = simulate_oligo_file(fn_in, simulator)
-  validate_and_generate_oligo_fasta(sim_df, fn_out)
-
-def debug_sim():
-  cfg = ConfigParser.RawConfigParser(allow_no_value=True); cfg.optionxform=str
-  cfg.read('validate_and_get_primers.cfg')
-  return(get_simulator(cfg))
+  sim_df = simulate_oligo_file(fn_in, simulator, matcher)
+  
 
 if __name__ == '__main__':
   cfg = ConfigParser.RawConfigParser(allow_no_value=True); cfg.optionxform=str
