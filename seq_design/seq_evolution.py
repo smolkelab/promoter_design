@@ -47,12 +47,6 @@ class seq_evolution_class(object):
         self.dna_dict[X] = np.array(wts)
       self.base_probs[:,i] = self.dna_dict[X]
 
-  #def _populate_sequences(self):
-  #  seqs = []
-  #  for q in range(self.num_seqs):
-  #    s = self._populate_one_sequence()
-  #    seqs.append(s)
-  #  self.seqs = np.stack(seqs, axis = 0)
   def _populate_sequences(self):
     seqs = np.zeros((self.num_seqs,) + self.base_probs.shape)
     idx0 = np.arange(self.num_seqs)
@@ -101,12 +95,9 @@ class seq_evolution_class(object):
   def _reshaping_test_sequences(self, seq_arr):
     shape_in = seq_arr.shape
     seq_arr_reshaped = np.reshape(seq_arr, (np.prod(shape_in[:-2]), shape_in[-2], shape_in[-1]))
-    print(seq_arr_reshaped.shape)
     preds_reshaped = self._test_sequences(seq_arr_reshaped)
     new_shape = shape_in[:-2] + preds_reshaped.shape[-2:]
-    print('new_shape: ' + str(new_shape))
     preds = np.reshape(preds_reshaped, new_shape)
-    print(preds.shape)
     return(preds)
 
   def generate_report(self):
@@ -129,12 +120,20 @@ class seq_evolution_class(object):
     return(pandas.DataFrame(ans))
 
   def mutate_one_seq(self, seq, num_mutations):
+    seq_orig = np.copy(seq)
+    seq = np.copy(seq)
     bases_to_change = np.random.choice(self.mutable, size = num_mutations, replace = False)
     for b in bases_to_change:
-      new_base_idx = np.random.choice(np.where(seq[:,b] == 0.)[0],1)
+      new_base_idxes = np.where(seq[:,b] == 0.)[0]
+      new_base_probs = self.base_probs[new_base_idxes,b]
+      new_base_probs = new_base_probs/np.sum(new_base_probs)
+      new_base_idx = np.random.choice(new_base_idxes,1,p = new_base_probs)
+      # old approach, doesn't take base_probs into account
+      #new_base_idx = np.random.choice(np.where(seq[:,b] == 0.)[0],1)
       new_base = np.zeros(shape = (len(DNA),))
       new_base[new_base_idx] = 1.
       seq[:,b] = new_base
+    assert(np.any(seq_orig != seq))
     return(seq)
 
   # num_mutations is number of mutations each new sequence should have.
@@ -147,13 +146,18 @@ class seq_evolution_class(object):
     for s in self.seqs:
       vars = [s] if keep_parent else []
       for i in range(nv):
-        vars.append(self.mutate_one_seq(s, num_mutations))
+        new_seq = self.mutate_one_seq(s, num_mutations)
+        assert(np.any(s != new_seq))
+        vars.append(new_seq)
       ans.append(np.stack(vars, axis = 0))
-    return( np.stack(ans, axis = 0) ) # has shape ( n_seqs, num_mutations, len(DNA), len(seq) )
+    ans = np.stack(ans, axis = 0)
+
+    return(ans) # has shape ( n_seqs, num_mutations, len(DNA), len(seq) )
 
 # Functions relying on things to be implemented in daughter classes
 
   def iterate(self, params, iter_idx):
+    print('Iteration: ' + str(iter_idx))
     # generate mutated variants of current seqs - daughter classes to determine
     vars = self.mutate_seqs(params['num_mutations'][iter_idx], params['keep_parent'][iter_idx])
     preds = self._reshaping_test_sequences(vars)
