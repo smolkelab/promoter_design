@@ -242,8 +242,10 @@ def unpack_params(cfg):
     return(flatten(pm))
   params['num_mutations'] = [int(q) for q in decompress_pm(cfg, 'NUM_MUTATIONS')]
   params['keep_parent'] = [q == 'True' for q in decompress_pm(cfg, 'KEEP_PARENT')]
+  params['gradient_step'] = [float(q) for q in decompress_pm(cfg, 'GRADIENT_STEP')]
   assert(len(params['num_mutations'])) == int(cfg.get('Params','NUM_ITERS'))
   assert(len(params['keep_parent'])) == int(cfg.get('Params','NUM_ITERS'))
+  assert(len(params['gradient_step'])) == int(cfg.get('Params','NUM_ITERS'))
   return(params)
 
 # cf. http://rightfootin.blogspot.com/2006/09/more-on-python-flatten.html
