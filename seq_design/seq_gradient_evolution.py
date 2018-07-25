@@ -11,40 +11,50 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
   def __init__(self, cfg):
     # prepare the models, populate the sequences, et cetera
     super(seq_evolution_class_gradient, self).__init__()
-    self.loss = self._get_loss(cfg)
+    self.loss_tensor_fx = self._get_loss_tensor_fx(cfg) # given a model, get an output tensor
+    iterates = [self._get_iterate_fx_from_model(q) for q in self.models]
+    def _get_mean_grad(iterates, input):
+      iterate_outputs = [q(input) for q in iterates]
+      losses = [p for (p,q) in iterate_outputs]
+      grads = [q for (p,q) in iterate_outputs]
+      final_grad = K.mean(K.stack(grads, axis = 0), axis = 0)
+      return(losses, final_grad)
+    # given an input, get a list of losses, and the mean gradient of the input
+    self.losses_and_grads = partial(_get_mean_grad, iterates)
+    
 
-  def _get_loss(self, cfg):
+  def _get_loss_tensor_fx(self, cfg):
     def loss_wrapper(merge_outputs_keras, model_in):
-      layer_output = model.layers[-1].output
-      loss = merge_outputs_keras(layer_output)
-      loss = K.mean(loss)
+      #model_output = model_in.layers[-1].output
+      model_output = model_in.output
+      loss = merge_outputs_keras(model_output)
       return(loss)
     merge_outputs_keras = eval(cfg.get('Functions','merge_outputs')) # needs to be written in terms of the backend
-    loss_fx = partial(loss_wrapper, merge_outputs_keras)
-    return(loss_fx)
+    loss_tensor_fx = partial(loss_wrapper, merge_outputs_keras)
+    return(loss_tensor_fx) # takes a model, returns a loss tensor
 
-  # get the normalized gradient for a sequence and one model
-  def _gradient_seq_model(self, seq, model):
-    grads = K.gradients(self.loss, seq)[0] # gradient at the input
+  # given a model, get a function taking an input tensor and returning loss and gradient tensors.
+  def _get_iterate_fx_from_model(self, model_in):
+    input_seq = model_in.input
+    loss = self.loss_tensor_fx(model_in)
+    grads = K.gradients(loss, input_seq)[0] # gradient at the input
     # following example, normalize gradient
-    grads = grads/(K.sqrt(K.mean(K.square(grads))) + 1e-5)
-    return(grads)
+    # cf. https://github.com/keras-team/keras/blob/master/examples/conv_filter_visualization.py
+    normalize = lambda x: x / (K.sqrt(K.mean(K.square(x))) + K.epsilon())
+    grads = normalize(grads)
+    iterate = K.function([input_seq], [loss, grads])
+    return(iterate)
 
-  # given an ensemble of models and a sequence, update with the mean of gradients  
-  def _update_seq_ensemble(self, seq, step)
-    gradients = np.stack([self._gradient_seq_model(seq, q) for q in self.models], axis = 0)
-    gradients = np.apply_along_axis(np.mean, 0, gradients)
-    seq += gradients*step
-    return(seq)
+  # given an ensemble of models and a list of sequences, update with the mean of gradients  
+  def _update_seq_ensemble(self, seqs, step):
+    losses, gradient = self.losses_and_grads(seqs)
+    print(losses)
+    seqs += gradient*step
+    return(seqs)
     
   # override method in parent class; update via gradient
   def iterate(self, params, iter_idx):
     self.seqs = self._update_seq_ensemble(self.seqs, float(params['gradient_step'][iter_idx]))
-    #new_seqs = []
-    #for s in self.seqs:
-    #  s_new = self._update_seq_ensemble(s, float(params['gradient_step'][iter_idx]))
-    #  new_seqs.append(s_new)
-    #self.seqs = np.stack(new_seqs, axis = 0)
 
   def basic_iterative(self, num_iters, params):
     # sequences were populated and models prepared by __init__
