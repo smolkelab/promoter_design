@@ -9,7 +9,7 @@ import os
 import pandas
 import numpy as np
 import random
-from numpy.random import choice
+from numpy.random import choice, random
 import ConfigParser
 import seq_evolution
 import seq_selection
@@ -24,6 +24,7 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
   def __init__(self, cfg):
     # prepare the models, populate the sequences, et cetera
     super(seq_evolution_class_gradient, self).__init__(cfg)
+    self.init_noise = float(cfg.get('Params','INIT_NOISE'))
     self.loss_tensor_fx = self._get_loss_tensor_fx(cfg) # given a model, get an output tensor
     iterates = [self._get_iterate_fx_from_model(q) for q in self.models]
     def _get_mean_grad(iterates, input):
@@ -72,6 +73,19 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
     seqs = seqs/seq_normalize
     return(np.array(seqs))
 
+  def _populate_sequences(self):
+    seqs = np.zeros((self.num_seqs,) + self.base_probs.shape)
+    idx0 = np.arange(self.num_seqs)
+    for i in range(self.base_probs.shape[1]):
+      if(np.max(self.base_probs[:,i]) == 1.):
+        seqs[:,:,i] = self.base_probs[:,i]
+      else:
+        #idx1 = choice(self.base_probs.shape[0], size = self.num_seqs, p = self.base_probs[:,i])
+        #seqs[idx0,idx1,i] = 1.
+        seqs[idx0, idx1,:] = self.base_probs[:,idx1] + rand(self.base_probs.shape[0])*self.init_noise
+        seqs[idx0, idx1,:] /= np.sum(seqs[idx0, idx1,:])
+    self.seqs = seqs
+    
   # override method in parent class; update via gradient
   def iterate(self, params, iter_idx):
     self.seqs_iter = self._update_seq_ensemble(self.seqs_iter, float(params['gradient_step'][iter_idx]))
