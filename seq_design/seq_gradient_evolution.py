@@ -9,7 +9,7 @@ import os
 import pandas
 import numpy as np
 import random
-from numpy.random import choice, random
+from numpy.random import choice, rand
 import ConfigParser
 import seq_evolution
 import seq_selection
@@ -23,8 +23,8 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
 
   def __init__(self, cfg):
     # prepare the models, populate the sequences, et cetera
-    super(seq_evolution_class_gradient, self).__init__(cfg)
     self.init_noise = float(cfg.get('Params','INIT_NOISE'))
+    super(seq_evolution_class_gradient, self).__init__(cfg)
     self.loss_tensor_fx = self._get_loss_tensor_fx(cfg) # given a model, get an output tensor
     iterates = [self._get_iterate_fx_from_model(q) for q in self.models]
     def _get_mean_grad(iterates, input):
@@ -63,32 +63,52 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
     iterate = K.function([input_seq], [loss, grads])
     return(iterate)
 
-  # given an ensemble of models and a list of sequences, update with the mean of gradients
-  def _update_seq_ensemble(self, seqs, step):
-    losses, gradient = self.losses_and_grads([seqs])
-    print(np.apply_along_axis(np.mean,0,np.stack(losses)))
-    gradient = np.multiply(gradient, self.mutable_mask)
-    seqs += gradient*step
+  # raise all values to some power, and renormalize -
+  # this encourages one value to dominate, approximating one-hot encoding.
+  def _norm_bias(self, seqs, norm_power):
+    print(np.min(seqs))
+    print(np.max(seqs))
+    seqs = np.power(seqs, norm_power)
     seq_normalize = np.apply_along_axis(np.sum, 2, seqs)[...,np.newaxis]
     seqs = seqs/seq_normalize
-    return(np.array(seqs))
+    return(seqs)
+
+
+  # given an ensemble of models and a list of sequences, update with the mean of gradients
+  def _update_seq_ensemble(self, seqs, step, norm_power):
+    losses, gradient = self.losses_and_grads([seqs])
+    losses = np.apply_along_axis(np.mean,0,np.stack(losses))
+    print(losses)
+    gradient = np.multiply(gradient, self.mutable_mask)
+    seqs += gradient*step
+    seqs = np.clip(seqs,0.,1.) # enforce between 0 and 1
+    seq_normalize = np.apply_along_axis(np.sum, 2, seqs)[...,np.newaxis]
+    seqs = seqs/seq_normalize
+    seqs = self._norm_bias(seqs, norm_power)
+    return(np.array(seqs), losses)
 
   def _populate_sequences(self):
     seqs = np.zeros((self.num_seqs,) + self.base_probs.shape)
-    idx0 = np.arange(self.num_seqs)
+    #idx0 = np.arange(self.num_seqs)
     for i in range(self.base_probs.shape[1]):
       if(np.max(self.base_probs[:,i]) == 1.):
         seqs[:,:,i] = self.base_probs[:,i]
       else:
         #idx1 = choice(self.base_probs.shape[0], size = self.num_seqs, p = self.base_probs[:,i])
         #seqs[idx0,idx1,i] = 1.
-        seqs[idx0, idx1,:] = self.base_probs[:,idx1] + rand(self.base_probs.shape[0])*self.init_noise
-        seqs[idx0, idx1,:] /= np.sum(seqs[idx0, idx1,:])
+        probs = self.base_probs[:,i][np.newaxis,...]
+        probs = np.repeat(probs, self.num_seqs, axis = 0)
+        noise = rand(probs.shape[0], probs.shape[1])*self.init_noise
+        seqs[:,:,i] = probs + noise
+    normalize_arr = np.apply_along_axis(np.sum,1, seqs)[:,np.newaxis,:]
+    seqs = seqs/normalize_arr
     self.seqs = seqs
-    
+
   # override method in parent class; update via gradient
   def iterate(self, params, iter_idx):
-    self.seqs_iter = self._update_seq_ensemble(self.seqs_iter, float(params['gradient_step'][iter_idx]))
+    print('Iteration: ' + str(iter_idx))
+    self.seqs_iter, losses = self._update_seq_ensemble(self.seqs_iter, float(params['gradient_step'][iter_idx]), float(params['normalize_power'][iter_idx]))
+    self.score_tracking.append(losses)
 
   def basic_iterative(self, num_iters, params):
     # sequences were populated and models prepared by __init__
@@ -125,6 +145,8 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
     #for i in range(self.seqs.shape[0]):
     #  print(debug_dists(self.seqs[0], self.seqs[i]))
 
+    orig_preds = self._test_sequences(self.seqs)
+
     for (i,s) in enumerate(self.seqs):
       x = np.argmax(s, axis = 0)
       seq_onehot = np.zeros(self.base_probs.shape)
@@ -132,8 +154,8 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
         seq_onehot[x[j],j] = 1.
       self.seqs[i] = seq_onehot
     final_preds = self._test_sequences(self.seqs)
-    print(final_preds)
-    #print(final_preds.shape)
+    print(np.mean((final_preds - orig_preds)[:,1,:],axis=1))
+    print(final_preds.shape)
 
     #for i in range(self.seqs.shape[0]):
     #  print(debug_dists(self.seqs[0], self.seqs[i]))
