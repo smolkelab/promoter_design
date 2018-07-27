@@ -85,7 +85,7 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
     seq_normalize = np.apply_along_axis(np.sum, 2, seqs)[...,np.newaxis]
     seqs = seqs/seq_normalize
     seqs = self._norm_bias(seqs, norm_power)
-	self.seqs_iter = np.array(seqs)
+    self.seqs_iter = np.array(seqs)
     return(losses)
 
   def _generate_n_sequences(self, n):
@@ -121,10 +121,10 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
     seqs_iter = np.swapaxes(self.seqs, 1, 2)
     removed_pad = seqs_iter[:,seqs_iter.shape[1]-self.shift+1:,:]
     self.seqs_iter = seqs_iter[:,0:seqs_iter.shape[1]-self.shift+1,:]
-	
+    
     for i in range(num_iters):
       self.iterate()
-	  self.curr_iters += 1
+      self.curr_iters += 1
 
     seqs_iter = np.concatenate([self.seqs_iter, removed_pad], axis = 1)
     self.seqs = np.swapaxes(seqs_iter, 1, 2)
@@ -133,7 +133,7 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
     seqs_out = self.de_onehot(self.seqs)
     ans = {'Seqs': seqs_out}
     orig_preds = self._test_sequences(self.seqs)
-	self.seqs = self.round_seqs(self.seqs)
+    self.seqs = self.round_seqs(self.seqs)
     final_preds = self._test_sequences(self.seqs)
     print(np.mean((final_preds - orig_preds)[:,1,:],axis=1))
     print(final_preds.shape)
