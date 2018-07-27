@@ -1,31 +1,49 @@
-Promoter,Objective,Filter,Function,Strategy,ID
-GPD,Strength,FALSE,Mean,Screening,0
-GPD,Strength,TRUE,Mean,Screening,1
-GPD,Strength,FALSE,Mean-sd,Screening,2
-GPD,Strength,TRUE,Mean-sd,Screening,3
-GPD,Strength,FALSE,Mean,Evolution to threshold,4
-GPD,Strength,FALSE,Mean-sd,Evolution to threshold,5
-GPD,Strength,TRUE,Mean-sd,Evolution to threshold,6
-GPD,Strength,FALSE,Mean,Evolution: cycle-limited,7
-GPD,Strength,FALSE,Mean-sd,Evolution: cycle-limited,8
-GPD,Strength,TRUE,Mean-sd,Evolution: cycle-limited,9
-ZEV,Induced strength,FALSE,Mean,Screening,10
-ZEV,Induced strength,TRUE,Mean,Screening,11
-ZEV,Induced strength,FALSE,Mean-sd,Screening,12
-ZEV,Induced strength,TRUE,Mean-sd,Screening,13
-ZEV,Induced strength,FALSE,Mean,Evolution to threshold,14
-ZEV,Induced strength,FALSE,Mean-sd,Evolution to threshold,15
-ZEV,Induced strength,TRUE,Mean-sd,Evolution to threshold,16
-ZEV,Induced strength,FALSE,Mean,Evolution: cycle-limited,17
-ZEV,Induced strength,FALSE,Mean-sd,Evolution: cycle-limited,18
-ZEV,Induced strength,TRUE,Mean-sd,Evolution: cycle-limited,19
-ZEV,AR + useful,FALSE,Mean,Screening,20
-ZEV,AR + useful,TRUE,Mean,Screening,21
-ZEV,AR + useful,FALSE,Mean-sd,Screening,22
-ZEV,AR + useful,TRUE,Mean-sd,Screening,23
-ZEV,AR + useful,FALSE,Mean,Evolution to threshold,24
-ZEV,AR + useful,FALSE,Mean-sd,Evolution to threshold,25
-ZEV,AR + useful,TRUE,Mean-sd,Evolution to threshold,26
-ZEV,AR + useful,FALSE,Mean,Evolution: cycle-limited,27
-ZEV,AR + useful,FALSE,Mean-sd,Evolution: cycle-limited,28
-ZEV,AR + useful,TRUE,Mean-sd,Evolution: cycle-limited,29
+Promoter,Objective,Filter,Function,Strategy,Threshold,ID
+GPD,Strength,FALSE,Mean,Screening,0.45,0
+GPD,Strength,TRUE,Mean,Screening,0.45,1
+GPD,Strength,FALSE,Mean-sd,Screening,0.45,2
+GPD,Strength,TRUE,Mean-sd,Screening,0.45,3
+GPD,Strength,FALSE,Mean,Evolution to threshold,0.6,4
+GPD,Strength,FALSE,Mean-sd,Evolution to threshold,0.6,5
+GPD,Strength,TRUE,Mean-sd,Evolution to threshold,0.6,6
+GPD,Strength,FALSE,Mean,Evolution: cycle-limited,0.6,7
+GPD,Strength,FALSE,Mean-sd,Evolution: cycle-limited,0.6,8
+GPD,Strength,TRUE,Mean-sd,Evolution: cycle-limited,0.6,9
+GPD,Strength,FALSE,Mean,Gradient to threshold,0.6,10
+GPD,Strength,FALSE,Mean-sd,Gradient to threshold,0.6,11
+GPD,Strength,FALSE,Mean,Gradient to threshold,0.9,12
+GPD,Strength,FALSE,Mean-sd,Gradient to threshold,0.9,13
+GPD,Strength,FALSE,Mean,Gradient: cycle-limited,0.9,14
+GPD,Strength,FALSE,Mean-sd,Gradient: cycle-limited,0.9,15
+ZEV,Induced strength,FALSE,Mean,Screening,1.5,16
+ZEV,Induced strength,TRUE,Mean,Screening,1.5,17
+ZEV,Induced strength,FALSE,Mean-sd,Screening,1.5,18
+ZEV,Induced strength,TRUE,Mean-sd,Screening,1.5,19
+ZEV,Induced strength,FALSE,Mean,Evolution to threshold,1.6,20
+ZEV,Induced strength,FALSE,Mean-sd,Evolution to threshold,1.6,21
+ZEV,Induced strength,TRUE,Mean-sd,Evolution to threshold,1.6,22
+ZEV,Induced strength,FALSE,Mean,Evolution: cycle-limited,1.6,23
+ZEV,Induced strength,FALSE,Mean-sd,Evolution: cycle-limited,1.6,24
+ZEV,Induced strength,TRUE,Mean-sd,Evolution: cycle-limited,1.6,25
+ZEV,Induced strength,FALSE,Mean,Gradient to threshold,1.4,26
+ZEV,Induced strength,FALSE,Mean-sd,Gradient to threshold,1.4,27
+ZEV,Induced strength,FALSE,Mean,Gradient to threshold,1.7,28
+ZEV,Induced strength,FALSE,Mean-sd,Gradient to threshold,1.7,29
+ZEV,Induced strength,FALSE,Mean,Gradient: cycle-limited,1.7,30
+ZEV,Induced strength,FALSE,Mean-sd,Gradient: cycle-limited,1.7,31
+ZEV,AR,FALSE,Mean,Screening,1.75,32
+ZEV,AR,TRUE,Mean,Screening,1.75,33
+ZEV,AR,FALSE,Mean-sd,Screening,1.75,34
+ZEV,AR,TRUE,Mean-sd,Screening,1.75,35
+ZEV,AR,FALSE,Mean,Evolution to threshold,1.85,36
+ZEV,AR,FALSE,Mean-sd,Evolution to threshold,1.85,37
+ZEV,AR,TRUE,Mean-sd,Evolution to threshold,1.85,38
+ZEV,AR,FALSE,Mean,Evolution: cycle-limited,1.85,39
+ZEV,AR,FALSE,Mean-sd,Evolution: cycle-limited,1.85,40
+ZEV,AR,TRUE,Mean-sd,Evolution: cycle-limited,1.85,41
+ZEV,AR,FALSE,Mean,Gradient to threshold,1.75,42
+ZEV,AR,FALSE,Mean-sd,Gradient to threshold,1.75,43
+ZEV,AR,FALSE,Mean,Gradient to threshold,1.85,44
+ZEV,AR,FALSE,Mean-sd,Gradient to threshold,1.85,45
+ZEV,AR,FALSE,Mean,Gradient: cycle-limited,1.85,46
+ZEV,AR,FALSE,Mean-sd,Gradient: cycle-limited,1.85,47

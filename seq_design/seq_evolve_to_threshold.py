@@ -12,41 +12,39 @@ import types
 import seq_evolution
 import seq_selection
 
+class seq_evolution_thresh(seq_evolution.seq_evolution_class):
+  def __init__(self, cfg):
+    super(seq_evolution_class_gradient, self).__init__(cfg)
+    
+  # Iterate, but return and reset any sequences scoring higher than 'thresh'.
+  # Reset the iteration counter for that sequence as well.
+  def thresholding_iterative(self, thresh, seqs_final, num_iters):
+    seqs_out = []
+    while(len(seq_out) < seqs_final):
+      # Round the seqs to one-hot, test them, merge the outputs from each model, and merge those to one final output per sequence.
+      model_scores = self.params['merge_models'](self.params['merge_outputs'](self._test_sequences(self.round_seqs(self.seqs))))
+      seq_scores = np.apply_along_axis(self.params['seq_scores'], 0, self.seqs)
+      scores = model_scores + seq_scores
+      done_pos = scores > thresh
+      seq_out.extend([q for q in thresholded_evolver.seqs[done_pos]])
+      for j, q in enumerate(done_pos):
+        if q or self.curr_iters[j] == num_iters - 1: # reset this sequence if needed
+          self.seqs[j] = self._populate_one_sequence()
+          self.curr_iters[j] = 0
+        else:
+          self.curr_iters[j] += 1
+      self.iterate()
+    seqs_out = seqs_out[:seqs_final]
+    self.seqs = np.array(seqs_out)
+
 if __name__ == '__main__':
   cfg = ConfigParser.RawConfigParser(allow_no_value=True)
   cfg.read(sys.argv[1])
-  random_seed = int(cfg.get('Params','random_seed'))
-  random.seed(random_seed); np.random.seed(random_seed)
   num_iters = int(cfg.get('Params','NUM_ITERS'))
   thresh = float(cfg.get('Params','THRESH'))
   seqs_final = int(cfg.get('Params','NUM_SEQS_FINAL'))
-  params = seq_evolution.unpack_params(cfg)
-  thresholded_evolver = seq_evolution.seq_evolution(cfg)
+  thresholded_evolver = seq_evolution_thresh(cfg)
   thresholded_evolver.choose_best_seqs = types.MethodType(eval(cfg.get('Functions','choose_best_seqs')), thresholded_evolver)
-  seqs_out = []
-  for i in range(num_iters):
-    # test the current set of sequences - add the good ones to seq_out
-    model_scores = params['merge_models'](params['merge_outputs'](thresholded_evolver._test_sequences(thresholded_evolver.seqs)))
-    seq_scores = np.apply_along_axis(params['seq_scores'], 0, thresholded_evolver.seqs)
-    scores = model_scores + seq_scores
-    thresholded_evolver.score_tracking.append(scores)
-    done_pos = scores > thresh
-    seq_out.extend([q for q in thresholded_evolver.seqs[done_pos]])
-    for j, q in enumerate(done_pos):
-      if q:
-        thresholded_evolver.seqs[q] = thresholded_evolver._populate_one_sequence()
-    if len(seq_out) >= seqs_final:
-      break
-    
-    # iterate!
-    thresholded_evolver.iterate(params, i)
-  
-  seqs_out = seqs_out[:seqs_final]
-  thresholded_evolver.seqs = np.array(seqs_out)
-  ans = thresholded_evolver.generate_report()
-  ans.to_csv(os.path.expanduser(cfg.get('Files','preds_fn')), index = False)
-  scores_tracked = np.array(evolver.score_tracking)
-  fn_scores = os.path.expanduser(cfg.get('Files','score_fn'))
-  np.savetxt(fn_scores, scores_tracked, delimiter=',')
-  
+  thresholded_evolver.thresholding_iterative(thresh, seqs_final, num_iters)
+  thresholded_evolver.save_output()
   seq_selection.main(cfg)

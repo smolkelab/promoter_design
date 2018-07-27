@@ -11,24 +11,16 @@ import ConfigParser
 # which promoter is this?
 PROMOTERS = {'GPD':['TACGTAAATAATTAATAGTAGTGACNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNTGTCTGGGTGNNNNNNNNNNNGGCATCCANNNNNNNNNNNNNNNNNNNNNNNNNGGCATCCANNNNNNNNATCCCAGCCANNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNGTATATAAAGMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMCACCAAGHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHATGTCTAAAGGTGAAGAATTATTCAC'],
              'ZEV':['TTTATCATTATCAATACTCGCCATTTCAAAGAATACGTAAATAATTAATAGTAGTGACNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNGCGTGGGCGNNNNNNNGCGTGGGCGNNNNNNNNNGCGTGGGCGNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNATAAGTATATAAAGACGGMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMCACCAAGHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHATGTCTAAAGGTGAAGAATTATTCACTGGTGTTGTCCCAATTTTGGTTGAATTAGATGG']} 
-OBJECTIVES = {'Strength':['strong','np.mean'],
-              'Induced strength':['induced','seq_evolution.get_induced'],
-              'AR + useful':['useful','seq_evolution.merge_outputs_AR_useful']} # what are we optimizing for? (controls merge_outputs)
+OBJECTIVES = {'Strength':['strong','np.mean','lambda x: K.mean(x, axis = 1)'],
+              'Induced strength':['induced','seq_evolution.get_induced','lambda x: x[:,1]'],
+              'AR':['AR','seq_evolution.merge_outputs_AR','lambda x: x[:,1] - x[:,0]']} # what are we optimizing for? (controls merge_outputs)
 FILTERS = {True:['gcfilter','seq_evolution.gc_filter'],False:['nofilter','lambda x: 0']} # Are we applying the GC content filter? (controls seq_scores)
 FUNCTIONS = {'Mean':['mean','np.mean'],'Mean-sd':['1sd','seq_evolution.mean_minus_sd']} # How are we combining the outputs from each model?
 STRATEGIES = {'Screening':['screen','10000','seq_screening.py'],
               'Evolution to threshold':['evolve-thresh','100','seq_evolve_to_threshold.py'],
-              'Evolution: cycle-limited':['evolve-cycle','100','seq_evolution.py']} # What evolution/screening strategy are we using?
-
-THRESHOLDS = {'GPD|Strength|Screening': '0.45',
-              'GPD|Strength|Evolution to threshold': '0.7',
-              'GPD|Strength|Evolution: cycle-limited': '0.7',
-              'ZEV|Induced strength|Screening': '1.6',
-              'ZEV|Induced strength|Evolution to threshold': '1.8',
-              'ZEV|Induced strength|Evolution: cycle-limited': '1.8',
-              'ZEV|AR + useful|Screening': '2.6',
-              'ZEV|AR + useful|Evolution to threshold': '2.8',
-              'ZEV|AR + useful|Evolution: cycle-limited': '2.8'}
+              'Evolution: cycle-limited':['evolve-cycle','100','seq_evolution.py'],
+              'Gradient to threshold':['gradient-thresh','500','seq_gradient_evolve_to_threshold.py'],
+              'Gradient: cycle-limited':['gradient-cycle','500','seq_gradient_evolution.py']} # What evolution/screening strategy are we using?
 
 if __name__ == '__main__':
   exps_p = pandas.read_csv(sys.argv[1])
@@ -41,7 +33,8 @@ if __name__ == '__main__':
   assert(all([q in FUNCTIONS for q in exps['Function']]))
   assert(all([q in STRATEGIES for q in exps['Strategy']]))
 
-  for i, (promoter, objective, filter, function, strategy) in enumerate(zip(exps['Promoter'], exps['Objective'], exps['Filter'], exps['Function'], exps['Strategy'])):
+  for i, (promoter, objective, filter, function, strategy, threshold) in enumerate(zip(exps['Promoter'], exps['Objective'], exps['Filter'], 
+                                                                        exps['Function'], exps['Strategy'], exps['Threshold'])):
     fn_stem = '_'.join([str(i), promoter, OBJECTIVES[objective][0], FILTERS[filter][0], FUNCTIONS[function][0], STRATEGIES[strategy][0]])
     cfg = ConfigParser.RawConfigParser()
     # Force case sensitivity, cf. https://stackoverflow.com/questions/1611799/preserve-case-in-configparser
@@ -58,6 +51,7 @@ if __name__ == '__main__':
     cfg.set('Files','score_fn', '~/facs-seq_test/seq_designs/scores/' + fn_stem + '.csv')
     
     cfg.add_section('Functions')
+    cfg.set('Functions','merge_outputs_keras',OBJECTIVES[objective][2])
     cfg.set('Functions','merge_outputs',OBJECTIVES[objective][1])
     cfg.set('Functions','merge_models',FUNCTIONS[function][1])
     cfg.set('Functions','seq_scores',FILTERS[filter][1])
@@ -68,18 +62,21 @@ if __name__ == '__main__':
     cfg.set('Params','N','25:25:25:25')
     cfg.set('Params','M','28:09:09:54')
     cfg.set('Params','H','33:33:0:33')
+    cfg.set('Params','INIT_NOISE','2e-1')
     cfg.set('Params','NUM_SEQS',STRATEGIES[strategy][1])
     cfg.set('Params','NUM_VARIANTS','20')
     cfg.set('Params','WTS_EXT','.h5')
     cfg.set('Params','OUTPUT_NAMES','A,B')
     cfg.set('Params','RANDOM_SEED','2017')
-    cfg.set('Params','NUM_ITERS','100')
+    cfg.set('Params','NUM_ITERS','250')
     cfg.set('Params','REJECT_MOTIFS','GGTCTC,GAGACC')
-    cfg.set('Params','THRESH', THRESHOLDS['|'.join([promoter, objective, strategy])])
+    cfg.set('Params','THRESH',threshold)
     cfg.set('Params','NUM_SEQS_FINAL','120')
     cfg.set('Params','PICK_TOP','True')
-    cfg.set('Params','NUM_MUTATIONS','20:50,10:30,2:20')
-    cfg.set('Params','KEEP_PARENT','True:80,False:20')
+    cfg.set('Params','NUM_MUTATIONS','20:50,10:50,3:50,1:100')
+    cfg.set('Params','KEEP_PARENT','False:200,True:50')
+    cfg.set('Params','GRADIENT_STEP','5e-2:100,1e-2:100,2e-3:50')
+    cfg.set('Params','NORMALIZE_POWER','1.:100,1.01:50,1.05:50,1.1:50')
     cfg.write(open(os.path.join('designs',fn_stem + '.cfg'), 'w'))
     script = 'nohup time python ../' + STRATEGIES[strategy][2] + ' ' + fn_stem + '.cfg > ~/facs-seq_test/seq_designs/logs/' + fn_stem + '.log &\n'
     script_fn = os.path.join('designs',fn_stem + '.sh')

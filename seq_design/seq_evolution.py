@@ -20,6 +20,7 @@ class seq_evolution_class(object):
   def __init__(self, cfg):
     print('Building evolver...')
     self.cfg = cfg
+    self.params = self.unpack_params(self.cfg)
     self.dna_dict = {}
     for (i,q) in enumerate(DNA):
       p_vec = np.zeros(shape = (len(DNA),))
@@ -29,16 +30,55 @@ class seq_evolution_class(object):
     self.num_seqs = int(self.cfg.get('Params', 'NUM_SEQS'))
     self.num_variants = int(self.cfg.get('Params','NUM_VARIANTS'))
     self.random_seed = int(self.cfg.get('Params', 'RANDOM_SEED'))
+    self.curr_iters = np.zeros((self.num_seqs,), dtype = 'int')
+    
+    seq = self.cfg.get('Params','SEQ')
+    self.mutable = np.where([q not in DNA for q in seq])[0] # positions of bases that can be mutated
+    self.base_probs = self.encode_seq(seq)
+    
+    self._set_mutable()
     self._get_base_probs()
     random.seed(self.random_seed); np.random.seed(self.random_seed)
     self._populate_sequences()
     self._prepare_models()
     print('Evolver built.')
 
-  def _get_base_probs(self):
-    seq = self.cfg.get('Params','SEQ')
-    self.mutable = np.where([q not in DNA for q in seq])[0] # positions of bases that can be mutated
-    self.base_probs = np.zeros(shape = (len(DNA), len(seq)))
+  # apply rules for extracting parameters from a config
+  def unpack_params(cfg):
+    params = {'merge_outputs': eval(cfg.get('Functions','merge_outputs')),
+            'merge_models': eval(cfg.get('Functions','merge_models')),
+            'seq_scores': eval(cfg.get('Functions','seq_scores'))}
+    # format for these: e.g. 50:5,30:3,20:1 for 50 cycles with 5 mutations each, 30 with 3, 20 with 1
+    
+    # cf. http://rightfootin.blogspot.com/2006/09/more-on-python-flatten.html
+    def flatten(l):
+      out = []
+      for item in l:
+        if isinstance(item, (list, tuple)):
+          out.extend(flatten(item))
+        else:
+          out.append(item)
+      return out
+    
+    def decompress_pm(cfg, key):
+      pm = cfg.get('Params',key)
+      pm = pm.strip().split(',')
+      pm = [(p.split(':')[0], p.split(':')[1]) for p in pm]
+      pm = [[p]*int(q) for (p,q) in pm]
+      return(flatten(pm))
+
+    params['num_mutations'] = [int(q) for q in decompress_pm(cfg, 'NUM_MUTATIONS')]
+    params['keep_parent'] = [q == 'True' for q in decompress_pm(cfg, 'KEEP_PARENT')]
+    params['gradient_step'] = [float(q) for q in decompress_pm(cfg, 'GRADIENT_STEP')]
+    params['normalize_power'] = [float(q) for q in decompress_pm(cfg, 'NORMALIZE_POWER')]
+    assert(len(params['num_mutations'])) == int(cfg.get('Params','NUM_ITERS'))
+    assert(len(params['keep_parent'])) == int(cfg.get('Params','NUM_ITERS'))
+    assert(len(params['gradient_step'])) == int(cfg.get('Params','NUM_ITERS'))
+    assert(len(params['normalize_power'])) == int(cfg.get('Params','NUM_ITERS'))
+    return(params)
+
+  def encode_seq(self, seq):
+    ans = np.zeros(shape = (len(DNA), len(seq)))
     for i,X in enumerate(seq):
       if X not in self.dna_dict:
         wts = [float(q) for q in self.cfg.get('Params',X).strip().split(':')]
@@ -46,6 +86,7 @@ class seq_evolution_class(object):
         assert(len(wts) == len(DNA))
         self.dna_dict[X] = np.array(wts)
       self.base_probs[:,i] = self.dna_dict[X]
+    return(ans)
 
   def _populate_sequences(self):
     seqs = np.zeros((self.num_seqs,) + self.base_probs.shape)
@@ -100,17 +141,21 @@ class seq_evolution_class(object):
     preds = np.reshape(preds_reshaped, new_shape)
     return(preds)
 
+  def de_onehot(self, seq_arr):
+    x = np.argmax(seq_arr, axis = 1)
+    seqs = []
+    for i in x:
+      seq = ''.join([DNA[q] for q in i])
+      seqs.append(seq)
+    return(seqs)
+
+  def round_seqs(self, seq_arr):
+    seqs = self.de_onehot(seq_arr)
+    seqs_enc = [self.encode_seq(q) for q in seqs]
+    return( np.stack(seqs_enc, axis = 0) )
+    
   def generate_report(self):
-    def de_onehot(seq_arr):
-      print(seq_arr.shape)
-      x = np.argmax(seq_arr, axis = 1)
-      print(x.shape)
-      seqs = []
-      for i in x:
-        seq = ''.join([DNA[q] for q in i])
-        seqs.append(seq)
-      return(seqs)
-    seqs_out = de_onehot(self.seqs)
+    seqs_out = self.de_onehot(self.seqs)
     ans = {}
     ans['Seqs'] = seqs_out
     final_preds = self._test_sequences(self.seqs)
@@ -118,7 +163,7 @@ class seq_evolution_class(object):
       for j in range(final_preds.shape[-1]):
         ans[p + '_' + str(j)] = final_preds[:,i,j]
     return(pandas.DataFrame(ans))
-
+    
   def mutate_one_seq(self, seq, num_mutations):
     seq_orig = np.copy(seq)
     seq = np.copy(seq)
@@ -138,15 +183,16 @@ class seq_evolution_class(object):
 
   # num_mutations is number of mutations each new sequence should have.
   # keep_parent is boolean; if 'True', one of the variants will be the original sequence.
-  def mutate_seqs(self, num_mutations, keep_parent):
-    nv = self.num_variants
-    if keep_parent:
-      nv -= 1
+  def mutate_seqs(self, num_mutations_arr, keep_parent_arr):
     ans = []
-    for s in self.seqs:
+    for (i,s) in enumerate(self.seqs):
+      keep_parent = keep_parent_arr[i]
+      nv = self.num_variants
+      if keep_parent:
+        nv -= 1
       vars = [s] if keep_parent else []
       for i in range(nv):
-        new_seq = self.mutate_one_seq(s, num_mutations)
+        new_seq = self.mutate_one_seq(s, num_mutations_arr[i])
         assert(np.any(s != new_seq))
         vars.append(new_seq)
       ans.append(np.stack(vars, axis = 0))
@@ -156,28 +202,42 @@ class seq_evolution_class(object):
 
 # Functions relying on things to be implemented in daughter classes
 
-  def iterate(self, params, iter_idx):
-    print('Iteration: ' + str(iter_idx))
+  def map_to_key(self, key):
+    key = self.params[key]
+    ans = np.zeros(arr_in.shape, dtype = key.dtype)
+    for (i,q) in enumerate(self.curr_iters):
+      ans[i] = key[q]
+    return(ans)
+
+  def iterate(self):
+    print('Iteration (0): ' + str(self.curr_iters[0]))
     # generate mutated variants of current seqs - daughter classes to determine
-    vars = self.mutate_seqs(params['num_mutations'][iter_idx], params['keep_parent'][iter_idx])
+    vars = self.mutate_seqs(self.map_to_key('num_mutations'), self.map_to_key('keep_parent'))
     preds = self._reshaping_test_sequences(vars)
     self.seqs = self.choose_best_seqs(vars, preds, params)
 
   # Placeholder, to be overridden
-  def choose_best_seqs(self, vars, preds, params):
+  def choose_best_seqs(self, vars, preds):
     raise Exception('choose_best_seqs needs to be overridden')
 
   # support the most basic loop; do some number of iterations and save the results.
-  def basic_iterative(self, choose_best_seqs, num_iters, params):
+  def basic_iterative(self, choose_best_seqs, num_iters):
     # override choose_best_seqs: cf. https://tryolabs.com/blog/2013/07/05/run-time-method-patching-python/
     self.choose_best_seqs = types.MethodType(choose_best_seqs, self)
     # sequences were populated and models prepared by __init__
     for i in range(num_iters):
-      self.iterate(params, i)
-    return( self.generate_report() )
+      self.iterate()
+      self.curr_iters += 1
+
+  def save_output(self):
+    ans = self.generate_report()
+    ans.to_csv(os.path.expanduser(self.cfg.get('Files','preds_fn')), index = False)
+    scores_tracked = np.array(self.score_tracking)
+    fn_scores = os.path.expanduser(self.cfg.get('Files','score_fn'))
+    np.savetxt(fn_scores, scores_tracked, delimiter=',')
 
 # Some helper functions for optimization
-def merge_outputs_AR_useful(axis_in):
+'''def merge_outputs_AR_useful(axis_in):
   # there should be two outputs: A (uninduced) and B (induced)
   # This gives a sigmoid mapping 1.0 -> 0.1; 1.1 -> 0.5; 1.2 -> 0.9; goal is to ensure Pred_B is useful
   # while otherwise optimizing activation ratio (B - A)
@@ -185,7 +245,9 @@ def merge_outputs_AR_useful(axis_in):
   m = (k2-k1)/0.2; b = k1 - m
   b_t = m*axis_in[1] + b
   b_sig = math.exp(b_t)/(math.exp(b_t)+1.)
-  return( b_sig + axis_in[1] - axis_in[0])
+  return( b_sig + axis_in[1] - axis_in[0])'''
+def merge_outputs_AR(axis_in):
+  return(axis_in[1] - axis_in[0])
 
 # just what it looks like - marginally more readable than a lambda, maybe
 def mean_minus_sd(axis_in):
@@ -213,14 +275,14 @@ def _max_window_score(arr_in, w_s):
   scores = cs[w_s:] - cs[:-w_s] # cumsum of windows - i.e., number of '1.' in each window assuming all 0. or 1.
   return(np.max(scores))
 
-def greedy_choose_best_seqs(self, vars, preds, params):
+def greedy_choose_best_seqs(self, vars, preds):
   # join multiple outputs from models into a single score; 'preds' is shape (n_seqs, n_mutations, n_outputs, n_models)
-  preds = np.apply_along_axis(params['merge_outputs'], 2, preds) # preds is now shape (n_seqs, n_mutations, n_models)
-  model_scores = np.apply_along_axis(params['merge_models'], 2, preds) # preds is now shape(n_seqs, n_mutations)
+  preds = np.apply_along_axis(self.params['merge_outputs'], 2, preds) # preds is now shape (n_seqs, n_mutations, n_models)
+  model_scores = np.apply_along_axis(self.params['merge_models'], 2, preds) # preds is now shape(n_seqs, n_mutations)
   seq_scores = np.zeros(shape = model_scores.shape)
   for i in range(preds.shape[0]):
     for j in range(preds.shape[1]):
-      seq_scores[i,j] = params['seq_scores'](vars[i,j,...])
+      seq_scores[i,j] = self.params['seq_scores'](vars[i,j,...])
   scores = model_scores + seq_scores
   best_ids = np.apply_along_axis(np.argmax, 1, scores) # shape (n_seqs,); ID of best variant of each sequence
   # vars has shape ( n_seqs, num_mutations, len(DNA), len(seq) )
@@ -232,51 +294,12 @@ def greedy_choose_best_seqs(self, vars, preds, params):
   self.score_tracking.append(best_scores)
   return( np.stack(new_seqs, axis = 0) )
 
-# apply rules for extracting parameters from a config
-def unpack_params(cfg):
-  params = {'merge_outputs': eval(cfg.get('Functions','merge_outputs')),
-            'merge_models': eval(cfg.get('Functions','merge_models')),
-            'seq_scores': eval(cfg.get('Functions','seq_scores'))}
-  # format for these: e.g. 50:5,30:3,20:1 for 50 cycles with 5 mutations each, 30 with 3, 20 with 1
-  def decompress_pm(cfg, key):
-    pm = cfg.get('Params',key)
-    pm = pm.strip().split(',')
-    pm = [(p.split(':')[0], p.split(':')[1]) for p in pm]
-    pm = [[p]*int(q) for (p,q) in pm]
-    return(flatten(pm))
-  params['num_mutations'] = [int(q) for q in decompress_pm(cfg, 'NUM_MUTATIONS')]
-  params['keep_parent'] = [q == 'True' for q in decompress_pm(cfg, 'KEEP_PARENT')]
-  params['gradient_step'] = [float(q) for q in decompress_pm(cfg, 'GRADIENT_STEP')]
-  params['normalize_power'] = [float(q) for q in decompress_pm(cfg, 'NORMALIZE_POWER')]
-  assert(len(params['num_mutations'])) == int(cfg.get('Params','NUM_ITERS'))
-  assert(len(params['keep_parent'])) == int(cfg.get('Params','NUM_ITERS'))
-  assert(len(params['gradient_step'])) == int(cfg.get('Params','NUM_ITERS'))
-  assert(len(params['normalize_power'])) == int(cfg.get('Params','NUM_ITERS'))
-  return(params)
-
-# cf. http://rightfootin.blogspot.com/2006/09/more-on-python-flatten.html
-def flatten(l):
-  out = []
-  for item in l:
-    if isinstance(item, (list, tuple)):
-      out.extend(flatten(item))
-    else:
-      out.append(item)
-  return out
-  
 # Assume this is a GPD-like task, and use 'greedy_choose_best_seqs'
 if __name__ == '__main__':
   cfg = ConfigParser.RawConfigParser(allow_no_value=True)
   cfg.read(sys.argv[1])
-  random_seed = int(cfg.get('Params','random_seed'))
-  random.seed(random_seed); np.random.seed(random_seed)
   num_iters = int(cfg.get('Params','NUM_ITERS'))
   evolver = seq_evolution_class(cfg)
-  params = unpack_params(cfg)
-  ans = evolver.basic_iterative(greedy_choose_best_seqs, num_iters, params)
-  ans.to_csv(os.path.expanduser(cfg.get('Files','preds_fn')), index = False)
-  scores_tracked = np.array(evolver.score_tracking)
-  fn_scores = os.path.expanduser(cfg.get('Files','score_fn'))
-  np.savetxt(fn_scores, scores_tracked, delimiter=',')
-  
+  evolver.basic_iterative(greedy_choose_best_seqs, num_iters)
+  evolver.save_output()
   seq_selection.main(cfg)

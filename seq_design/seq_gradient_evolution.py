@@ -73,9 +73,9 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
     seqs = seqs/seq_normalize
     return(seqs)
 
-
   # given an ensemble of models and a list of sequences, update with the mean of gradients
-  def _update_seq_ensemble(self, seqs, step, norm_power):
+  def _update_seq_ensemble(self, step, norm_power):
+    seqs = self.seqs_iter
     losses, gradient = self.losses_and_grads([seqs])
     losses = np.apply_along_axis(np.mean,0,np.stack(losses))
     print(losses)
@@ -85,81 +85,58 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
     seq_normalize = np.apply_along_axis(np.sum, 2, seqs)[...,np.newaxis]
     seqs = seqs/seq_normalize
     seqs = self._norm_bias(seqs, norm_power)
-    return(np.array(seqs), losses)
+	self.seqs_iter = np.array(seqs)
+    return(losses)
 
-  def _populate_sequences(self):
-    seqs = np.zeros((self.num_seqs,) + self.base_probs.shape)
-    #idx0 = np.arange(self.num_seqs)
+  def _generate_n_sequences(self, n):
+    seqs = np.zeros((n,) + self.base_probs.shape)
     for i in range(self.base_probs.shape[1]):
       if(np.max(self.base_probs[:,i]) == 1.):
         seqs[:,:,i] = self.base_probs[:,i]
       else:
-        #idx1 = choice(self.base_probs.shape[0], size = self.num_seqs, p = self.base_probs[:,i])
-        #seqs[idx0,idx1,i] = 1.
         probs = self.base_probs[:,i][np.newaxis,...]
         probs = np.repeat(probs, self.num_seqs, axis = 0)
         noise = rand(probs.shape[0], probs.shape[1])*self.init_noise
         seqs[:,:,i] = probs + noise
     normalize_arr = np.apply_along_axis(np.sum,1, seqs)[:,np.newaxis,:]
     seqs = seqs/normalize_arr
+    return(seqs)
+
+  def _populate_sequences(self):
+    seqs = self._generate_n_sequences(self.num_seqs)
     self.seqs = seqs
 
+  # In seq_evolve_to_threshold, we want to generate replacement sequences one at a time.
+  def _populate_one_sequence(self):
+    return( self._generate_n_sequences(1) )
+
   # override method in parent class; update via gradient
-  def iterate(self, params, iter_idx):
-    print('Iteration: ' + str(iter_idx))
-    self.seqs_iter, losses = self._update_seq_ensemble(self.seqs_iter, float(params['gradient_step'][iter_idx]), float(params['normalize_power'][iter_idx]))
+  def iterate(self): # , params, iter_idx
+    print('Iteration (0): ' + str(self.curr_iters[0]))
+    losses = self._update_seq_ensemble(self.map_to_key('gradient_step'), self.map_to_key('normalize_power')
     self.score_tracking.append(losses)
 
-  def basic_iterative(self, num_iters, params):
+  def basic_iterative(self, num_iters):
     # sequences were populated and models prepared by __init__
-    # unlike in base class, self.iterate will operate on Keras tensors,
-    # not Numpy arrays
-    #for i in range(self.seqs.shape[0]):
-    #  print(debug_dists(self.seqs[0], self.seqs[i]))
-
     seqs_iter = np.swapaxes(self.seqs, 1, 2)
     removed_pad = seqs_iter[:,seqs_iter.shape[1]-self.shift+1:,:]
     self.seqs_iter = seqs_iter[:,0:seqs_iter.shape[1]-self.shift+1,:]
+	
     for i in range(num_iters):
-      self.iterate(params, i)
+      self.iterate()
+	  self.curr_iters += 1
 
     seqs_iter = np.concatenate([self.seqs_iter, removed_pad], axis = 1)
     self.seqs = np.swapaxes(seqs_iter, 1, 2)
-    return( self.generate_report() )
 
   def generate_report(self):
-    def de_onehot(seq_arr):
-      #print(seq_arr.shape)
-      x = np.argmax(seq_arr, axis = 1)
-      #print(x.shape)
-      seqs = []
-      for i in x:
-        seq = ''.join([DNA[q] for q in i])
-        seqs.append(seq)
-      return(seqs)
-    seqs_out = de_onehot(self.seqs)
-    #print(seqs_out)
+    seqs_out = self.de_onehot(self.seqs)
     ans = {'Seqs': seqs_out}
-
-    #print(self._test_sequences(self.seqs))
-    #for i in range(self.seqs.shape[0]):
-    #  print(debug_dists(self.seqs[0], self.seqs[i]))
-
     orig_preds = self._test_sequences(self.seqs)
-
-    for (i,s) in enumerate(self.seqs):
-      x = np.argmax(s, axis = 0)
-      seq_onehot = np.zeros(self.base_probs.shape)
-      for j in range(seq_onehot.shape[1]):
-        seq_onehot[x[j],j] = 1.
-      self.seqs[i] = seq_onehot
+	self.seqs = self.round_seqs(self.seqs)
     final_preds = self._test_sequences(self.seqs)
     print(np.mean((final_preds - orig_preds)[:,1,:],axis=1))
     print(final_preds.shape)
-
-    #for i in range(self.seqs.shape[0]):
-    #  print(debug_dists(self.seqs[0], self.seqs[i]))
-
     for i,p in enumerate(self.output_names):
       for j in range(final_preds.shape[-1]):
         this_pred = final_preds[:,i,j]
@@ -170,14 +147,8 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
 if __name__ == '__main__':
   cfg = ConfigParser.RawConfigParser(allow_no_value=True)
   cfg.read(sys.argv[1])
-  random_seed = int(cfg.get('Params','random_seed'))
-  random.seed(random_seed); np.random.seed(random_seed)
   num_iters = int(cfg.get('Params','NUM_ITERS'))
   evolver = seq_evolution_class_gradient(cfg)
-  params = seq_evolution.unpack_params(cfg)
-  ans = evolver.basic_iterative(num_iters, params)
-  ans.to_csv(os.path.expanduser(cfg.get('Files','preds_fn')), index = False)
-  scores_tracked = np.array(evolver.score_tracking)
-  fn_scores = os.path.expanduser(cfg.get('Files','score_fn'))
-  np.savetxt(fn_scores, scores_tracked, delimiter=',')
+  evolver.basic_iterative(num_iters)
+  evolver.save_output()
   seq_selection.main(cfg)
