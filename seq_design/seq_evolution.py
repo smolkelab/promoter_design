@@ -20,7 +20,7 @@ class seq_evolution_class(object):
   def __init__(self, cfg):
     print('Building evolver...')
     self.cfg = cfg
-    self.params = self.unpack_params(self.cfg)
+    self.params = self.unpack_params()
     self.dna_dict = {}
     for (i,q) in enumerate(DNA):
       p_vec = np.zeros(shape = (len(DNA),))
@@ -44,10 +44,10 @@ class seq_evolution_class(object):
     print('Evolver built.')
 
   # apply rules for extracting parameters from a config
-  def unpack_params(self, cfg):
-    params = {'merge_outputs': eval(cfg.get('Functions','merge_outputs')),
-            'merge_models': eval(cfg.get('Functions','merge_models')),
-            'seq_scores': eval(cfg.get('Functions','seq_scores'))}
+  def unpack_params(self):
+    params = {'merge_outputs': eval(self.cfg.get('Functions','merge_outputs')),
+            'merge_models': eval(self.cfg.get('Functions','merge_models')),
+            'seq_scores': eval(self.cfg.get('Functions','seq_scores'))}
     # format for these: e.g. 50:5,30:3,20:1 for 50 cycles with 5 mutations each, 30 with 3, 20 with 1
     
     # cf. http://rightfootin.blogspot.com/2006/09/more-on-python-flatten.html
@@ -67,14 +67,14 @@ class seq_evolution_class(object):
       pm = [[p]*int(q) for (p,q) in pm]
       return(flatten(pm))
 
-    params['num_mutations'] = [int(q) for q in decompress_pm(cfg, 'NUM_MUTATIONS')]
-    params['keep_parent'] = [q == 'True' for q in decompress_pm(cfg, 'KEEP_PARENT')]
-    params['gradient_step'] = [float(q) for q in decompress_pm(cfg, 'GRADIENT_STEP')]
-    params['normalize_power'] = [float(q) for q in decompress_pm(cfg, 'NORMALIZE_POWER')]
-    assert(len(params['num_mutations'])) == int(cfg.get('Params','NUM_ITERS'))
-    assert(len(params['keep_parent'])) == int(cfg.get('Params','NUM_ITERS'))
-    assert(len(params['gradient_step'])) == int(cfg.get('Params','NUM_ITERS'))
-    assert(len(params['normalize_power'])) == int(cfg.get('Params','NUM_ITERS'))
+    params['num_mutations'] = [int(q) for q in decompress_pm(self.cfg, 'NUM_MUTATIONS')]
+    params['keep_parent'] = [q == 'True' for q in decompress_pm(self.cfg, 'KEEP_PARENT')]
+    params['gradient_step'] = [float(q) for q in decompress_pm(self.cfg, 'GRADIENT_STEP')]
+    params['normalize_power'] = [float(q) for q in decompress_pm(self.cfg, 'NORMALIZE_POWER')]
+    assert(len(params['num_mutations'])) == int(self.cfg.get('Params','NUM_ITERS'))
+    assert(len(params['keep_parent'])) == int(self.cfg.get('Params','NUM_ITERS'))
+    assert(len(params['gradient_step'])) == int(self.cfg.get('Params','NUM_ITERS'))
+    assert(len(params['normalize_power'])) == int(self.cfg.get('Params','NUM_ITERS'))
     return(params)
 
   def encode_seq(self, seq):
