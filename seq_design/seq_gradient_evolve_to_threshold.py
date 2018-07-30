@@ -6,6 +6,7 @@ import numpy as np
 import random
 from numpy.random import choice, rand
 import ConfigParser
+import types
 import seq_evolution
 import seq_selection
 import seq_gradient_evolution
