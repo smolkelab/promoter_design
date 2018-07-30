@@ -13,11 +13,8 @@ import seq_selection
 if __name__ == '__main__':
   cfg = ConfigParser.RawConfigParser(allow_no_value=True)
   cfg.read(sys.argv[1])
-  random_seed = int(cfg.get('Params','random_seed'))
-  random.seed(random_seed); np.random.seed(random_seed)
   screener = seq_evolution.seq_evolution_class(cfg)
   print('screener ready')
-  params = seq_evolution.unpack_params(cfg)
   thresh = float(cfg.get('Params','THRESH'))
   seqs_needed = int(cfg.get('Params','NUM_SEQS_FINAL'))
   filter_fx = eval(cfg.get('Functions','seq_scores'))
@@ -39,7 +36,6 @@ if __name__ == '__main__':
     print('Iter ' + str(curr_iter) + ': ' + str(time.time() - t))
   seqs_passing = seqs_passing[:seqs_needed]
   screener.seqs = np.array(seqs_passing)
-  ans = screener.generate_report()
-  ans.to_csv(os.path.expanduser(cfg.get('Files','preds_fn')), index = False)
+  screener.save_output()
   
   seq_selection.main(cfg)
