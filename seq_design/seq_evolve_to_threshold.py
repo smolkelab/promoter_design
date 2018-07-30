@@ -15,7 +15,6 @@ import seq_selection
 class seq_evolution_thresh(seq_evolution.seq_evolution_class):
   def __init__(self, cfg):
     super(seq_evolution_thresh, self).__init__(cfg)
-
   # Iterate, but return and reset any sequences scoring higher than 'thresh'.
   # Reset the iteration counter for that sequence as well.
   def thresholding_iterative(self, thresh, seqs_final, num_iters):
@@ -29,7 +28,6 @@ class seq_evolution_thresh(seq_evolution.seq_evolution_class):
       scores = model_scores + seq_scores
       print(scores)
       done_pos = scores > thresh
-      print(sum(done_pos))
       seqs_out.extend([q for q in self.seqs[done_pos]])
       for j, q in enumerate(done_pos):
         if q or self.curr_iters[j] == num_iters - 1: # reset this sequence if needed
