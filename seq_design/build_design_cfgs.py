@@ -17,8 +17,8 @@ OBJECTIVES = {'Strength':['strong','np.mean','lambda x: K.mean(x, axis = 1)'],
 FILTERS = {True:['gcfilter','seq_evolution.gc_filter'],False:['nofilter','lambda x: 0']} # Are we applying the GC content filter? (controls seq_scores)
 FUNCTIONS = {'Mean':['mean','np.mean'],'Mean-sd':['1sd','seq_evolution.mean_minus_sd']} # How are we combining the outputs from each model?
 STRATEGIES = {'Screening':['screen','10000','seq_screening.py'],
-              'Evolution to threshold':['evolve-thresh','100','seq_evolve_to_threshold.py'],
-              'Evolution: cycle-limited':['evolve-cycle','100','seq_evolution.py'],
+              'Evolution to threshold':['evolve-thresh','500','seq_evolve_to_threshold.py'],
+              'Evolution: cycle-limited':['evolve-cycle','500','seq_evolution.py'],
               'Gradient to threshold':['gradient-thresh','500','seq_gradient_evolve_to_threshold.py'],
               'Gradient: cycle-limited':['gradient-cycle','500','seq_gradient_evolution.py']} # What evolution/screening strategy are we using?
 
@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
   for i, (promoter, objective, filter, function, strategy, threshold) in enumerate(zip(exps['Promoter'], exps['Objective'], exps['Filter'], 
                                                                         exps['Function'], exps['Strategy'], exps['Threshold'])):
-    fn_stem = '_'.join([str(i), promoter, OBJECTIVES[objective][0], FILTERS[filter][0], FUNCTIONS[function][0], STRATEGIES[strategy][0]])
+    fn_stem = '_'.join([str(i), promoter, OBJECTIVES[objective][0], FILTERS[filter][0], FUNCTIONS[function][0], STRATEGIES[strategy][0]], str(threshold))
     cfg = ConfigParser.RawConfigParser()
     # Force case sensitivity, cf. https://stackoverflow.com/questions/1611799/preserve-case-in-configparser
     cfg.optionxform=str
@@ -62,7 +62,7 @@ if __name__ == '__main__':
     cfg.set('Params','N','25:25:25:25')
     cfg.set('Params','M','28:09:09:54')
     cfg.set('Params','H','33:33:0:33')
-    cfg.set('Params','INIT_NOISE','2e-1')
+    cfg.set('Params','INIT_NOISE','5e-1')
     cfg.set('Params','NUM_SEQS',STRATEGIES[strategy][1])
     cfg.set('Params','NUM_VARIANTS','20')
     cfg.set('Params','WTS_EXT','.h5')
