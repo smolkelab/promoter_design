@@ -14,7 +14,7 @@ import seq_selection
 
 class seq_evolution_thresh(seq_evolution.seq_evolution_class):
   def __init__(self, cfg):
-    super(seq_evolution_class_gradient, self).__init__(cfg)
+    super(seq_evolution_thresh, self).__init__(cfg)
     
   # Iterate, but return and reset any sequences scoring higher than 'thresh'.
   # Reset the iteration counter for that sequence as well.
