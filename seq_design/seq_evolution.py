@@ -202,7 +202,7 @@ class seq_evolution_class(object):
 
   def map_to_key(self, key):
     key = self.params[key]
-    ans = np.zeros(self.curr_iters.shape[0], dtype = key.dtype)
+    ans = np.zeros(self.curr_iters.shape[0], dtype = type(key[0]))
     for (i,q) in enumerate(self.curr_iters):
       ans[i] = key[q]
     return(ans)
