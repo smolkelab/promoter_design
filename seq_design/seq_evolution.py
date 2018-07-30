@@ -212,7 +212,7 @@ class seq_evolution_class(object):
     # generate mutated variants of current seqs - daughter classes to determine
     vars = self.mutate_seqs(self.map_to_key('num_mutations'), self.map_to_key('keep_parent'))
     preds = self._reshaping_test_sequences(vars)
-    self.seqs = self.choose_best_seqs(vars, preds, params)
+    self.seqs = self.choose_best_seqs(vars, preds)
 
   # Placeholder, to be overridden
   def choose_best_seqs(self, vars, preds):
