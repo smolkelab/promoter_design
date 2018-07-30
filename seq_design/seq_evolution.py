@@ -85,7 +85,7 @@ class seq_evolution_class(object):
         wts = [q/float(sum(wts)) for q in wts]
         assert(len(wts) == len(DNA))
         self.dna_dict[X] = np.array(wts)
-      self.base_probs[:,i] = self.dna_dict[X]
+      ans[:,i] = self.dna_dict[X]
     return(ans)
 
   def _populate_sequences(self):
