@@ -68,7 +68,7 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
   def _norm_bias(self, seqs, norm_power):
     print(np.min(seqs))
     print(np.max(seqs))
-    seqs = np.power(seqs, norm_power)
+    seqs = np.power(seqs, norm_power[:,np.newaxis, np.newaxis])
     seq_normalize = np.apply_along_axis(np.sum, 2, seqs)[...,np.newaxis]
     seqs = seqs/seq_normalize
     return(seqs)
@@ -80,13 +80,18 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
     losses = np.apply_along_axis(np.mean,0,np.stack(losses))
     print(losses)
     gradient = np.multiply(gradient, self.mutable_mask)
-    seqs += gradient*step
+    seqs += gradient*step[:,np.newaxis, np.newaxis]
     seqs = np.clip(seqs,0.,1.) # enforce between 0 and 1
     seq_normalize = np.apply_along_axis(np.sum, 2, seqs)[...,np.newaxis]
     seqs = seqs/seq_normalize
     seqs = self._norm_bias(seqs, norm_power)
     self.seqs_iter = np.array(seqs)
     return(losses)
+
+  def rand_range(self, shape_0, shape_1, min, max):
+    r = rand(shape_0, shape_1)*(max - min)
+    r = r + min
+    return(r)
 
   def _generate_n_sequences(self, n):
     seqs = np.zeros((n,) + self.base_probs.shape)
@@ -95,9 +100,11 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
         seqs[:,:,i] = self.base_probs[:,i]
       else:
         probs = self.base_probs[:,i][np.newaxis,...]
-        probs = np.repeat(probs, self.num_seqs, axis = 0)
-        noise = rand(probs.shape[0], probs.shape[1])*self.init_noise
-        seqs[:,:,i] = probs + noise
+        probs = np.repeat(probs, n, axis = 0)
+        noise = self.rand_range(probs.shape[0], probs.shape[1], 1. - self.init_noise, 1. + self.init_noise)
+        seqs[:,:,i] = probs*noise
+        #noise = rand(probs.shape[0], probs.shape[1])*self.init_noise
+        #seqs[:,:,i] = probs + noise
     normalize_arr = np.apply_along_axis(np.sum,1, seqs)[:,np.newaxis,:]
     seqs = seqs/normalize_arr
     return(seqs)
@@ -112,22 +119,22 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
 
   # override method in parent class; update via gradient
   def iterate(self): # , params, iter_idx
-    print('Iteration (0): ' + str(self.curr_iters[0]))
-    losses = self._update_seq_ensemble(self.map_to_key('gradient_step'), self.map_to_key('normalize_power')
-    self.score_tracking.append(losses)
-
-  def basic_iterative(self, num_iters):
-    # sequences were populated and models prepared by __init__
     seqs_iter = np.swapaxes(self.seqs, 1, 2)
     removed_pad = seqs_iter[:,seqs_iter.shape[1]-self.shift+1:,:]
-    self.seqs_iter = seqs_iter[:,0:seqs_iter.shape[1]-self.shift+1,:]
-    
-    for i in range(num_iters):
-      self.iterate()
-      self.curr_iters += 1
+    self.seqs_iter = seqs_iter[:,:seqs_iter.shape[1]-self.shift+1,:]
+
+    print('Iteration (0): ' + str(self.curr_iters[0]))
+    losses = self._update_seq_ensemble(self.map_to_key('gradient_step'), self.map_to_key('normalize_power'))
 
     seqs_iter = np.concatenate([self.seqs_iter, removed_pad], axis = 1)
     self.seqs = np.swapaxes(seqs_iter, 1, 2)
+
+    self.score_tracking.append(losses)
+
+  def basic_iterative(self, num_iters):
+    for i in range(num_iters):
+      self.iterate()
+      self.curr_iters += 1
 
   def generate_report(self):
     seqs_out = self.de_onehot(self.seqs)
