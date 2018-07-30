@@ -36,8 +36,6 @@ class seq_evolution_class(object):
     self.mutable = np.where([q not in DNA for q in seq])[0] # positions of bases that can be mutated
     self.base_probs = self.encode_seq(seq)
     
-    self._set_mutable()
-    self._get_base_probs()
     random.seed(self.random_seed); np.random.seed(self.random_seed)
     self._populate_sequences()
     self._prepare_models()
