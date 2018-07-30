@@ -27,9 +27,9 @@ if __name__ == '__main__':
     preds = screener._test_sequences(screener.seqs)
     preds = preds[:,np.newaxis,...] # dummy axis for "variants," which we aren't using here
     print(preds.shape)
-    preds = np.apply_along_axis(params['merge_outputs'],2,preds)
+    preds = np.apply_along_axis(screener.params['merge_outputs'],2,preds)
     print(preds.shape)
-    scores = np.apply_along_axis(params['merge_models'],2,preds).squeeze() # 1D array of scores
+    scores = np.apply_along_axis(screener.params['merge_models'],2,preds).squeeze() # 1D array of scores
     print(np.max(scores))
     seqs_passing.extend([p for (p,q) in zip(screener.seqs, scores) if q > thresh and filter_fx_bool(p)])
     screener._populate_sequences()
