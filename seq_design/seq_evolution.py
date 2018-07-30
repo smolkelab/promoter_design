@@ -44,7 +44,7 @@ class seq_evolution_class(object):
     print('Evolver built.')
 
   # apply rules for extracting parameters from a config
-  def unpack_params(cfg):
+  def unpack_params(self, cfg):
     params = {'merge_outputs': eval(cfg.get('Functions','merge_outputs')),
             'merge_models': eval(cfg.get('Functions','merge_models')),
             'seq_scores': eval(cfg.get('Functions','seq_scores'))}
