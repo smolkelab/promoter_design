@@ -20,13 +20,13 @@ class seq_evolution_thresh(seq_evolution.seq_evolution_class):
   # Reset the iteration counter for that sequence as well.
   def thresholding_iterative(self, thresh, seqs_final, num_iters):
     seqs_out = []
-    while(len(seq_out) < seqs_final):
+    while(len(seqs_out) < seqs_final):
       # Round the seqs to one-hot, test them, merge the outputs from each model, and merge those to one final output per sequence.
       model_scores = self.params['merge_models'](self.params['merge_outputs'](self._test_sequences(self.round_seqs(self.seqs))))
       seq_scores = np.apply_along_axis(self.params['seq_scores'], 0, self.seqs)
       scores = model_scores + seq_scores
       done_pos = scores > thresh
-      seq_out.extend([q for q in thresholded_evolver.seqs[done_pos]])
+      seqs_out.extend([q for q in thresholded_evolver.seqs[done_pos]])
       for j, q in enumerate(done_pos):
         if q or self.curr_iters[j] == num_iters - 1: # reset this sequence if needed
           self.seqs[j] = self._populate_one_sequence()
