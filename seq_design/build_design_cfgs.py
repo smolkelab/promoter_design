@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
   for i, (promoter, objective, filter, function, strategy, threshold) in enumerate(zip(exps['Promoter'], exps['Objective'], exps['Filter'], 
                                                                         exps['Function'], exps['Strategy'], exps['Threshold'])):
-    fn_stem = '_'.join([str(i), promoter, OBJECTIVES[objective][0], FILTERS[filter][0], FUNCTIONS[function][0], STRATEGIES[strategy][0]], str(threshold))
+    fn_stem = '_'.join([str(i), promoter, OBJECTIVES[objective][0], FILTERS[filter][0], FUNCTIONS[function][0], STRATEGIES[strategy][0], str(threshold)])
     cfg = ConfigParser.RawConfigParser()
     # Force case sensitivity, cf. https://stackoverflow.com/questions/1611799/preserve-case-in-configparser
     cfg.optionxform=str
