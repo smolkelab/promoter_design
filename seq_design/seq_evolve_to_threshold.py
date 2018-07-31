@@ -21,10 +21,11 @@ class seq_evolution_thresh(seq_evolution.seq_evolution_class):
     seqs_out = []
     while(len(seqs_out) < seqs_final):
       # Round the seqs to one-hot, test them, merge the outputs from each model, and merge those to one final output per sequence.
-      ts = self._test_sequences(self.round_seqs(self.seqs))
+      rs = self.round_seqs(self.seqs)
+      ts = self._test_sequences(rs)
       ms = np.apply_along_axis(self.params['merge_outputs'],1,ts)
       model_scores = np.apply_along_axis(self.params['merge_models'],1,ms)
-      seq_scores = np.array([self.params['seq_scores'](q) for q in ts])
+      seq_scores = np.array([self.params['seq_scores'](q) for q in rs])
       scores = model_scores + seq_scores
       print(scores)
       done_pos = scores > thresh
