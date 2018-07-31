@@ -46,6 +46,10 @@ class seq_evolution_class(object):
     params = {'merge_outputs': eval(self.cfg.get('Functions','merge_outputs')),
             'merge_models': eval(self.cfg.get('Functions','merge_models')),
             'seq_scores': eval(self.cfg.get('Functions','seq_scores'))}
+    params['seq_indices'] = [int(q) for q in self.cfg.get('Params','SEQ_INDICES').strip().split(',')]
+    # Not all of the sequence needs to be filtered (i.e. GC content-scored): the 5' homology is pretty GC-poor.
+    # When calling params['seq_scores'], automatically strip out parts of the input we don't want to look at.
+    params['seq_scores'] = lambda x: params['seq_scores'](x[:,params['seq_indices'][0]:params['seq_indices'][1]])
     # format for these: e.g. 50:5,30:3,20:1 for 50 cycles with 5 mutations each, 30 with 3, 20 with 1
     
     # cf. http://rightfootin.blogspot.com/2006/09/more-on-python-flatten.html
