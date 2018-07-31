@@ -14,7 +14,7 @@ PROMOTERS = {'GPD':['TACGTAAATAATTAATAGTAGTGACNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 OBJECTIVES = {'Strength':['strong','np.mean','lambda x: K.mean(x, axis = 1)'],
               'Induced strength':['induced','seq_evolution.get_induced','lambda x: x[:,1]'],
               'AR':['AR','seq_evolution.merge_outputs_AR','lambda x: x[:,1] - x[:,0]']} # what are we optimizing for? (controls merge_outputs)
-FILTERS = {True:['gcfilter','seq_evolution.gc_filter'],False:['nofilter','lambda x: 0']} # Are we applying the GC content filter? (controls seq_scores)
+FILTERS = {True:['gcfilter','seq_evolution.gc_filter','25:25:25:25'],False:['nofilter','lambda x: 0','28:09:09:54']} # Are we applying the GC content filter? (controls seq_scores)
 FUNCTIONS = {'Mean':['mean','np.mean'],'Mean-sd':['1sd','seq_evolution.mean_minus_sd']} # How are we combining the outputs from each model?
 STRATEGIES = {'Screening':['screen','10000','seq_screening.py'],
               'Evolution to threshold':['evolve-thresh','500','seq_evolve_to_threshold.py'],
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     cfg.add_section('Params')
     cfg.set('Params','SEQ',PROMOTERS[promoter][0])
     cfg.set('Params','N','25:25:25:25')
-    cfg.set('Params','M','28:09:09:54')
+    cfg.set('Params','M',FILTERS[filter][2]) # using the heavily AT-biased settings means we can't get anything through the GC filter
     cfg.set('Params','H','33:33:0:33')
     cfg.set('Params','INIT_NOISE','5e-1')
     cfg.set('Params','NUM_SEQS',STRATEGIES[strategy][1])
