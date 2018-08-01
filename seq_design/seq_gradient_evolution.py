@@ -164,7 +164,7 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
     return(pandas.DataFrame(ans))
 
 # GC filter function: use non-trainable convolution layer to get GC content and add to gradient
-def get_gc_fx_from_model(model_in, seq_start, seq_end, filter_len = 20, gc_min = 0.25, gc_max = 0.75, penalty_wt = 100.):
+def get_gc_fx_from_model(model_in, seq_start, seq_end, filter_len = 20, gc_min = 0.25, gc_max = 0.75, penalty_wt = 10.):
   input_seq = model_in.input
   def get_os(start, end, input_shape):
     input_shape = list(input_shape)
