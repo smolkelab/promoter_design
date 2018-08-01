@@ -1,6 +1,7 @@
 # Given an ensemble of models, evolve a random sequence to fulfill an objective.
 # cf. https://blog.keras.io/how-convolutional-neural-networks-see-the-world.html
 
+import keras
 from keras import backend as K
 from functools import partial
 
@@ -26,16 +27,27 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
     self.init_noise = float(cfg.get('Params','INIT_NOISE'))
     super(seq_evolution_class_gradient, self).__init__(cfg)
     self.loss_tensor_fx = self._get_loss_tensor_fx(cfg) # given a model, get an output tensor
+    scores_fx_name = cfg.get('Functions','seq_scores_keras')
+    if scores_fx_name == 'None':
+      self.seq_scores_fx = None
+    else:
+      get_seq_scores_fx = eval(scores_fx_name)
+      [seq_start, seq_end] = [int(q) for q in cfg.get('Params', 'SEQ_INDICES').strip().split(',')]
+      self.seq_scores_fx = get_seq_scores_fx(self.models[0], seq_start, seq_end)
     iterates = [self._get_iterate_fx_from_model(q) for q in self.models]
-    def _get_mean_grad(iterates, input):
+    def _get_mean_grad(iterates, seq_scores_fx, input):
       iterate_outputs = [q(input) for q in iterates]
       losses = [p for (p,q) in iterate_outputs]
       grads = [q for (p,q) in iterate_outputs]
       #final_grad = K.mean(K.stack(grads, axis = 0), axis = 0)
       final_grad = np.mean(np.stack(grads, axis = 0), axis = 0)
+      if seq_scores_fx != None:
+        seq_losses, seq_grad = seq_scores_fx(input)
+        losses += seq_losses
+        final_grad += seq_grad
       return(losses, final_grad)
     # given an input, get a list of losses, and the mean gradient of the input, as Numpy arrays
-    self.losses_and_grads = partial(_get_mean_grad, iterates)
+    self.losses_and_grads = partial(_get_mean_grad, iterates, self.seq_scores_fx)
 
     # For gradient updates - keep from "updating" immutable bases
     self.mutable_mask = np.zeros(self.base_probs.shape[1])
@@ -150,6 +162,34 @@ class seq_evolution_class_gradient(seq_evolution.seq_evolution_class):
         this_name = p + '_' + str(j)
         ans[this_name] = this_pred
     return(pandas.DataFrame(ans))
+
+# GC filter function: use non-trainable convolution layer to get GC content and add to gradient
+def get_gc_fx_from_model(model_in, seq_start, seq_end, filter_len = 20, gc_min = 0.2, gc_max = 0.8, penalty_wt = 100.):
+  input_seq = model_in.input
+  def get_os(start, end, input_shape):
+    input_shape = list(input_shape)
+    input_shape[1] = input_shape[1] - seq_start + seq_end # assume seq_start is positive, seq_end negative
+    return(tuple(input_shape))
+  get_output_shape = partial(get_os, seq_start, seq_end)
+  input_seq_sliced = keras.layers.Lambda(lambda x: x[:,seq_start:seq_end,:], output_shape = get_output_shape)(input_seq)
+  w_weights = np.zeros((filter_len,len(DNA),1))
+  for (i,q) in enumerate(DNA):
+    if q in 'GC':
+      w_weights[:,i,:] = 1./filter_len
+  b_weights_min = np.array([gc_min])
+  b_weights_max = np.array([-1.*gc_max])
+  gc_min = keras.layers.Conv1D(filters = 1, kernel_size = filter_len, strides=1, padding='valid', weights = [-1.*w_weights, b_weights_min], activation = 'relu')(input_seq_sliced)
+  gc_min = keras.layers.Lambda(lambda x: K.min(K.abs(x), axis = 1))(gc_min)
+  gc_max = keras.layers.Conv1D(filters = 1, kernel_size = filter_len, strides=1, padding='valid', weights = [w_weights, b_weights_max], activation = 'relu')(input_seq_sliced)
+  gc_max = keras.layers.Lambda(lambda x: K.max(K.abs(x), axis = 1))(gc_max)
+  gc_penalty = keras.layers.Add()([gc_min, gc_max])
+  gc_penalty = keras.layers.Lambda(lambda x: -1.*x*penalty_wt)(gc_penalty)
+  
+  # ensure shape matches 'output' below
+  gc_penalty = keras.layers.Lambda(lambda x: x[:,0])(gc_penalty)
+  grads = K.gradients(gc_penalty, input_seq)[0]
+  gc_fx = K.function([input_seq], [gc_penalty, grads])
+  return(gc_fx)
 
 if __name__ == '__main__':
   cfg = ConfigParser.RawConfigParser(allow_no_value=True)

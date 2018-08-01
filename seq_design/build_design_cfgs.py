@@ -14,7 +14,7 @@ PROMOTERS = {'GPD':['TACGTAAATAATTAATAGTAGTGACNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 OBJECTIVES = {'Strength':['strong','np.mean','lambda x: K.mean(x, axis = 1)'],
               'Induced strength':['induced','seq_evolution.get_induced','lambda x: x[:,1]'],
               'AR':['AR','seq_evolution.merge_outputs_AR','lambda x: x[:,1] - x[:,0]']} # what are we optimizing for? (controls merge_outputs)
-FILTERS = {True:['gcfilter','seq_evolution.gc_filter','25:25:25:25'],False:['nofilter','lambda x: 0','28:09:09:54']} # Are we applying the GC content filter? (controls seq_scores)
+FILTERS = {True:['gcfilter','seq_evolution.gc_filter','25:25:25:25','get_gc_fx_from_model'],False:['nofilter','lambda x: 0','28:09:09:54','None']} # Are we applying the GC content filter? (controls seq_scores)
 FUNCTIONS = {'Mean':['mean','np.mean'],'Mean-sd':['1sd','seq_evolution.mean_minus_sd']} # How are we combining the outputs from each model?
 STRATEGIES = {'Screening':['screen','10000','seq_screening.py'],
               'Evolution to threshold':['evolve-thresh','500','seq_evolve_to_threshold.py'],
@@ -55,6 +55,7 @@ if __name__ == '__main__':
     cfg.set('Functions','merge_outputs',OBJECTIVES[objective][1])
     cfg.set('Functions','merge_models',FUNCTIONS[function][1])
     cfg.set('Functions','seq_scores',FILTERS[filter][1])
+    cfg.set('Functions','seq_scores_keras',FILTERS[filter][3])
     cfg.set('Functions','choose_best_seqs','seq_evolution.greedy_choose_best_seqs')
     
     cfg.add_section('Params')
