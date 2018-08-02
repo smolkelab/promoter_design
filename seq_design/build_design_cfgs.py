@@ -80,7 +80,7 @@ if __name__ == '__main__':
     cfg.set('Params','GRADIENT_STEP','5e-2:100,1e-2:100,2e-3:50')
     cfg.set('Params','NORMALIZE_POWER','1.:100,1.01:50,1.05:50,1.1:50')
     cfg.write(open(os.path.join('designs',fn_stem + '.cfg'), 'w'))
-    script = 'time python ../' + STRATEGIES[strategy][2] + ' ' + fn_stem + '.cfg > ~/facs-seq_test/seq_designs/logs/' + fn_stem + '.log &\n'
+    script = 'python ../' + STRATEGIES[strategy][2] + ' ' + fn_stem + '.cfg > ~/facs-seq_test/seq_designs/logs/' + fn_stem + '.log &\n'
     script_fn = os.path.join('designs',fn_stem + '.sh')
     with open(script_fn, 'w') as sf:
       sf.write(script)
