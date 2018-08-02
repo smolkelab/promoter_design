@@ -1,0 +1,1 @@
+python run_designs.py 1 4 >/dev/null &
