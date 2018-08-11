@@ -20,7 +20,7 @@ ZEV,Induced strength,FALSE,Mean,Gradient to threshold,1.65,17
 ZEV,Induced strength,FALSE,Mean-sd,Gradient to threshold,1.65,18
 ZEV,Induced strength,TRUE,Mean,Gradient to threshold,1.6,19
 ZEV,Induced strength,TRUE,Mean-sd,Gradient to threshold,1.6,20
-ZEV,Induced strength,FALSE,Mean-sd,Gradient to threshold,1.7,21
+ZEV,Induced strength,FALSE,Mean-sd,Gradient to threshold,1.65,21
 ZEV,AR,FALSE,Mean,Screening,1.75,22
 ZEV,AR,FALSE,Mean-sd,Screening,1.75,23
 ZEV,AR,FALSE,Mean,Evolution to threshold,1.85,24
