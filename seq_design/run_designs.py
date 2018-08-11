@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 SCRIPTS_DIR = 'designs'
-SCRIPTS_TABLE = 'build_design_cfgs_key_3.csv'
+SCRIPTS_TABLE = 'build_design_cfgs_key.csv'
 
 def main(this_instance, num_instances):
   df = pd.read_csv(SCRIPTS_TABLE)
