@@ -12,12 +12,12 @@ GPD,Strength,TRUE,Mean-sd,Gradient to threshold,0.6,9
 GPD,Strength,FALSE,Mean-sd,Gradient to threshold,0.75,10
 ZEV,Induced strength,FALSE,Mean,Screening,1.45,11
 ZEV,Induced strength,FALSE,Mean-sd,Screening,1.45,12
-ZEV,Induced strength,FALSE,Mean,Evolution to threshold,1.65,13
-ZEV,Induced strength,FALSE,Mean-sd,Evolution to threshold,1.65,14
-ZEV,Induced strength,TRUE,Mean,Evolution to threshold,1.65,15
-ZEV,Induced strength,TRUE,Mean-sd,Evolution to threshold,1.65,16
-ZEV,Induced strength,FALSE,Mean,Gradient to threshold,1.65,17
-ZEV,Induced strength,FALSE,Mean-sd,Gradient to threshold,1.65,18
+ZEV,Induced strength,FALSE,Mean,Evolution to threshold,1.6,13
+ZEV,Induced strength,FALSE,Mean-sd,Evolution to threshold,1.6,14
+ZEV,Induced strength,TRUE,Mean,Evolution to threshold,1.6,15
+ZEV,Induced strength,TRUE,Mean-sd,Evolution to threshold,1.6,16
+ZEV,Induced strength,FALSE,Mean,Gradient to threshold,1.6,17
+ZEV,Induced strength,FALSE,Mean-sd,Gradient to threshold,1.6,18
 ZEV,Induced strength,TRUE,Mean,Gradient to threshold,1.6,19
 ZEV,Induced strength,TRUE,Mean-sd,Gradient to threshold,1.6,20
 ZEV,Induced strength,FALSE,Mean-sd,Gradient to threshold,1.65,21
