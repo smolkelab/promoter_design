@@ -110,9 +110,9 @@ if __name__ == '__main__':
   cfg.read(sys.argv[1])
   fn_in = os.path.expanduser(cfg.get('Files', 'table_in'))
   dat = pd.read_csv(fn_in)
-  dat = dat.loc[pd.notna(dat['Last.Control.Use']),:]
-  pool_names = dat['Last.Control.Use'].unique()
-  dfs = { q: dat.loc[dat['Last.Control.Use'] == q,:] for q in pool_names }
+  dat = dat.loc[pd.notna(dat['Pool.ID']),:]
+  pool_names = dat['Pool.ID'].unique()
+  dfs = { q: dat.loc[dat['Pool.ID'] == q,:] for q in pool_names }
   cfgs = {}
   fn_fwd_pool = os.path.expanduser(cfg.get('Pools', 'fwd_pool_fn'))
   start_fwd_pool = int(cfg.get('Pools','fwd_pool_start'))
