@@ -1,6 +1,7 @@
 # Workflow is Desktop/pred_test -> Data/2018-07/Select_control_seqs.R -> pred_test/merge_means_predictions.py (-> Data/2018-07/Visualize_control_seqs.R)
 # Use the output 'means_controls_merged.csv', instead of the individual control CSVs - the merged output accounts for the same sequence appearing in multiple
-# sets, eliminating redundancy. If sequences are used more than once, just synthesize it with the last pool it's represented in (the column 'Last.Control.Use').
+# sets, eliminating redundancy. If sequences are used more than once, just synthesize it with the last pool it's represented in (the column 'Last.Control.Use' - 
+# renamed 'Pool.ID')
 # Finish control design by running 'oligo_design' on subsets:
 # Break the controls into subsets: each control pool can get its own set of oligos.
 # Do each pool in duplicate; try to have different GG sites in each as well.
