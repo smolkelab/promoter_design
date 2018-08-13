@@ -1,1 +1,1 @@
-python validate_oligos.py validate.cfg
+python validate_oligos.py validate_final.cfg
