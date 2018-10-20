@@ -1,4 +1,7 @@
 # Python-based FACS-Seq means estimator
+# Added 2018-10: if the output file already exists, pre-load the means;
+# create a column 'RMSD' in the score file, for the RMSD of each mean estimate
+# w.r.t. to the final means.
 
 import sys
 import os
@@ -69,7 +72,7 @@ def mle_argmax_kernel(score_arr, argmax_arr, argscore_arr):
     midx = -1
     for i in range(score_arr.shape[1]):
       if score_arr[x,i] > mval:
-      	midx = i
+        midx = i
         mval = score_arr[x,i]
     argmax_arr[x] = midx
     argscore_arr[x] = mval
@@ -164,7 +167,7 @@ def process_one_param_choice(cell_arr, mean_range, bin_edges, threads_per_side, 
     print('score: ' + str(score))
   return(mean_ests, score)
 
-def main_estimator(cell_arr, mean_range, sigma_range, fuzz_range, bin_edges, table_fn, threads_per_side, threads_per_block, mode, verbose):
+def main_estimator(cell_arr, mean_range, sigma_range, fuzz_range, bin_edges, table_fn, threads_per_side, threads_per_block, mode, verbose, means_final = None):
   best_score = float('-inf')
   mean_ests = None
   global_ests = None
@@ -172,13 +175,20 @@ def main_estimator(cell_arr, mean_range, sigma_range, fuzz_range, bin_edges, tab
   curr = 0
   if table_fn != None:
     tf = open(table_fn, 'w')
-    tf.write('sigma,fuzz,score\n')
+    if means_final != None:
+      tf.write('sigma,fuzz,score,rmsd\n')
+    else:
+      tf.write('sigma,fuzz,score\n')
   try:
     for i in sigma_range:
       for j in fuzz_range:
         new_mean_ests, score = process_one_param_choice(cell_arr, mean_range, bin_edges, threads_per_side, threads_per_block, mode, verbose, sigma = i, fuzz = j)
         if table_fn != None:
-          tf.write(str(i) + ',' + str(j) + ',' + str(score) + '\n')
+          if means_final != None:
+            rmsd = np.sqrt(np.mean(np.square(new_mean_ests - means_final)))
+            tf.write(str(i) + ',' + str(j) + ',' + str(score) + ',' + str(rmsd) + '\n')
+          else:
+            tf.write(str(i) + ',' + str(j) + ',' + str(score) + '\n')
         if score > best_score:
           mean_ests = new_mean_ests
           global_ests = {'sigma':i, 'fuzz':j}
@@ -192,7 +202,7 @@ def main_estimator(cell_arr, mean_range, sigma_range, fuzz_range, bin_edges, tab
   return(mean_ests, global_ests)
 
 def main_input_handler(read_tuple, config):
-  read_arr, rep_name = read_tuple
+  read_arr, rep_name, means_final = read_tuple
 
   cell_counts = np.array([int(q) for q in config.get('sort_' + rep_name,'cell_counts').strip().split(',')])
   bin_edges = np.array([float(q) for q in config.get('sort_' + rep_name,'bin_edges').strip().split(',')])
@@ -213,7 +223,7 @@ def main_input_handler(read_tuple, config):
 
   for i in range(read_arr.shape[1]):
     read_arr[:,i] = read_arr[:,i]*cell_counts[i]/np.sum(read_arr[:,i]) # convert read counts to cell counts
-  (mean_ests, global_ests) = main_estimator(read_arr, mean_range, sigma_range, fuzz_range, bin_edges, table_fn, threads_per_side, threads_per_block, mode, verbose)
+  (mean_ests, global_ests) = main_estimator(read_arr, mean_range, sigma_range, fuzz_range, bin_edges, table_fn, threads_per_side, threads_per_block, mode, verbose, means_final)
   return(mean_ests, global_ests)
 
 if __name__ == '__main__':
@@ -235,8 +245,17 @@ if __name__ == '__main__':
   read_arr = read_arr[:,np.argsort(colnames)]
 
   read_arrs = [read_arr[:,:12], read_arr[:,12:]]
-  read_tuples = zip(read_arrs, REPLICATE_NAMES)
+  
+  # added 2018-10: check whether the means already exist. If yes, each time a hyperparameter choice is tested,
+  # get the RMSD of the predicted means w.r.t. the final means.
+  if os.path.isfile(config.get('Output','out_file')):
+    means_final = pandas.read_csv(config.get('Output','out_file'))
+    means_final = [means_final['Means_A'], means_final['Means_B']]
+  else:
+    means_final = [None, None]
 
+  read_tuples = zip(read_arrs, REPLICATE_NAMES, means_final)
+  
   mg_list = [main_input_handler(q, config) for q in read_tuples]
   means = [q[0] for q in mg_list]
   global_ests = [q[1] for q in mg_list]
