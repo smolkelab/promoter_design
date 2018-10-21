@@ -167,7 +167,7 @@ def process_one_param_choice(cell_arr, mean_range, bin_edges, threads_per_side, 
     print('score: ' + str(score))
   return(mean_ests, score)
 
-def main_estimator(cell_arr, mean_range, sigma_range, fuzz_range, bin_edges, table_fn, threads_per_side, threads_per_block, mode, verbose, means_final = None):
+def main_estimator(cell_arr, mean_range, sigma_range, fuzz_range, bin_edges, table_fn, threads_per_side, threads_per_block, mode, verbose, means_final):
   best_score = float('-inf')
   mean_ests = None
   global_ests = None
@@ -175,16 +175,18 @@ def main_estimator(cell_arr, mean_range, sigma_range, fuzz_range, bin_edges, tab
   curr = 0
   if table_fn != None:
     tf = open(table_fn, 'w')
-    if means_final != None:
+    if not means_final is None:
       tf.write('sigma,fuzz,score,rmsd\n')
+      print('tracking RMSD')
     else:
       tf.write('sigma,fuzz,score\n')
+      print('not tracking RMSD')
   try:
     for i in sigma_range:
       for j in fuzz_range:
         new_mean_ests, score = process_one_param_choice(cell_arr, mean_range, bin_edges, threads_per_side, threads_per_block, mode, verbose, sigma = i, fuzz = j)
         if table_fn != None:
-          if means_final != None:
+          if not means_final is None:
             rmsd = np.sqrt(np.mean(np.square(new_mean_ests - means_final)))
             tf.write(str(i) + ',' + str(j) + ',' + str(score) + ',' + str(rmsd) + '\n')
           else:
@@ -248,8 +250,9 @@ if __name__ == '__main__':
   
   # added 2018-10: check whether the means already exist. If yes, each time a hyperparameter choice is tested,
   # get the RMSD of the predicted means w.r.t. the final means.
-  if os.path.isfile(config.get('Output','out_file')):
-    means_final = pandas.read_csv(config.get('Output','out_file'))
+
+  if os.path.isfile(os.path.expanduser(config.get('Output','out_file'))):
+    means_final = pandas.read_csv(os.path.expanduser(config.get('Output','out_file')))
     means_final = [means_final['Means_A'], means_final['Means_B']]
   else:
     means_final = [None, None]
