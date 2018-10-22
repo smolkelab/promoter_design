@@ -20,14 +20,14 @@ class fate_summary(object):
     # create records of the format {group_id: {reads_aln:, reads_N:, reads_ambig:}}
     self.keyset = set()
     self.records = {}
-    
+    self.lines_to_reads(self.fn_cluster_output, 'reads_pre')
     self.lines_to_reads(self.fn_ambig, 'reads_ambig')
     self.lines_to_reads(self.fn_N, 'reads_N')
     self.lines_to_groups(self.fn_aln, 'reads_aln')
     
   def _new_record(self, idx):
     self.keyset.add(idx)
-    self.records[idx] = {'reads_aln':0, 'reads_N':0, 'reads_ambig':0}
+    self.records[idx] = {'reads_pre':0, 'reads_aln':0, 'reads_N':0, 'reads_ambig':0}
     
   def lines_to_reads(self, fn, key_id):
     with open(fn, 'r') as fi:
@@ -49,10 +49,10 @@ class fate_summary(object):
     
   def write_to_file(self):
     with open(self.fn_out, 'w') as fo:
-      fo.write('Group,Ambig,N,Aln\n')
+      fo.write('Group,Pre,Ambig,N,Aln\n')
       for k in self.keyset:
         rec = self.records[k]
-        fo.write(','.join([str(q) for q in [k, rec['reads_ambig'], rec['reads_N'], rec['reads_aln']]]) + '\n')
+        fo.write(','.join([str(q) for q in [k, rec['reads_pre'], rec['reads_ambig'], rec['reads_N'], rec['reads_aln']]]) + '\n')
       
 
 def main_method(cfg):
