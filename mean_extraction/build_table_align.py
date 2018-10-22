@@ -5,6 +5,7 @@ import read_merge_v2 as read_merge
 import read_merge_connected_components
 import reduce_clusters
 import filter_seqs
+import get_align_group_fates
 import ConfigParser
 
 def timer(text, mark):
@@ -30,6 +31,7 @@ def main_method(file_in, dir_intermed, cluster_output, file_scores_fwd, file_sco
   reduce_clusters.main_method(cluster_output, file_cleaned, file_aln, file_N, file_ambig, len_aln, n_lines, num_bins)
 
   filter_seqs.main_method(kwargs['cfg'])
+  get_align_group_fates.main_method(kwargs['cfg'])
 
 if __name__=='__main__':
   config = ConfigParser.RawConfigParser(allow_no_value=True)
