@@ -21,6 +21,7 @@ FN_TMP_SCORES = os.path.expanduser('~/facs-seq_test/scores_tmp.txt')
 MAX_GAPS = 5
 CHUNK_SIZE = 500000
 THREADS_PER_BLOCK = 64
+RANDOM_SEED = 2017
 
 # given a file of \n-delimited seqs and a reference sequence seq_in (a string),
 # get a list where entry i is the NW distance between seq_in and line i in fn_in
@@ -81,7 +82,7 @@ def get_random_groups(fn_in, num_out, aln_thresh = 0):
   return(gps[:num_out])
 
 # for min_score_within_group: get the distances all within one call to score_file
-def list_vs_self_dist_onerun(reads, fn_tmp_seqs = FN_TMP_SEQS, fn_tmp_scores = FN_TMP_SCORES, max_gaps = MAX_GAPS, chunk_size = CHUNK_SIZE, threads_per_block = THREADS_PER_BLOCK):
+def list_vs_self_dist_onerun(reads, max_score, fn_tmp_seqs = FN_TMP_SEQS, fn_tmp_scores = FN_TMP_SCORES, max_gaps = MAX_GAPS, chunk_size = CHUNK_SIZE, threads_per_block = THREADS_PER_BLOCK):
 
   with open(fn_tmp_seqs, 'w') as fo:
     for i in range(len(reads)):
@@ -94,7 +95,7 @@ def list_vs_self_dist_onerun(reads, fn_tmp_seqs = FN_TMP_SEQS, fn_tmp_scores = F
   context = numba.cuda.current_context()
   context.reset()
 
-  ans = 100000.
+  ans = max_score
   with open(fn_tmp_scores, 'r') as fi: # record every other line, starting with the first (line 0)
     for l in fi:
       l = float(l.strip())
@@ -105,7 +106,7 @@ def list_vs_self_dist_onerun(reads, fn_tmp_seqs = FN_TMP_SEQS, fn_tmp_scores = F
   return(ans)
 
 # given a list of reads, get the minimum score within the reads
-def min_score_within_group(reads, fn_in_tmp):
+def min_score_within_group(reads, max_score, fn_in_tmp):
   '''reads = []
   with open(clustered_read_fn, 'r') as fi:
     for l in fi:
@@ -115,7 +116,7 @@ def min_score_within_group(reads, fn_in_tmp):
   print len(reads)
   # remove duplicates
   reads = list(set(reads))
-  min_score = list_vs_self_dist_onerun(reads, fn_in_tmp)
+  min_score = list_vs_self_dist_onerun(reads, max_score, fn_in_tmp)
   print min_score
   #dist_dict = list_vs_self_dist(reads, fn_in_tmp)
   #min_score = 100000
@@ -182,25 +183,29 @@ def get_successful_groups(means_fn, read_table_fn, num_out):
 
   random.shuffle(seqs)
   seqs = seqs[:num_out]
-		
+  print seqs
+
   # from the read table, get the corresponding group IDs
   seq_to_id = {}
   with open(read_table_fn, 'r') as fi:
     for l in fi:
-	  [seq, g] = l.strip().split(',')[:2]
-	  seq_to_id[seq] = g
+      [seq, g] = l.strip().split(',')[:2]
+      seq_to_id[seq] = g
 
-  ans = [seqs_to_id[q] for q in seqs]
+  ans = [int(seq_to_id[q]) for q in seqs]
+  print ans
   return(ans)
-  
+
 # given a config object, get the following:
 # a table gp_id, longest internal distance for all groups above a certain number of reads
 # a 'table' gp_id, # reads, minimum distance to another group, comma-separated list of gp_ids with that distance, for all groups above a certain number of reads
 
 def main_method(cfg, num_groups, means_fn, internal_dist_fn_out, intergroup_dist_fn_out, fn_in_tmp = FN_TMP_SEQS2):
+  max_score = len(cfg.get('Params','SEQ').strip())
   #target_groups = get_biggest_groups(fn_in = os.path.expanduser(cfg.get('Output', 'file_fates')), aln_thresh = reads_thresh)
   #target_groups = get_random_groups(fn_in = os.path.expanduser(cfg.get('Output', 'file_fates')), num_out = num_groups)
   target_groups = get_successful_groups(means_fn, os.path.expanduser(cfg.get('Output', 'file_aligned_filtered')), num_groups)
+  print('target_groups: ' + str(target_groups))
   target_seqs = get_seqs_from_group_ids(group_ids = target_groups, read_table_fn = os.path.expanduser(cfg.get('Output', 'file_aligned_filtered')))
   # drop groups without a seq found (meaning seq was dropped in filtering)
   final_groups = []
@@ -221,13 +226,12 @@ def main_method(cfg, num_groups, means_fn, internal_dist_fn_out, intergroup_dist
       g = int(g)
       if g in reads_dict.keys():
         reads_dict[g].append(seq)
-  
+  print('final_groups: ' + str(final_groups))
   # write a table gp_id,longest internal distance to internal_dist_fn_out
-  # modify longest_dist_within_group!
   with open(internal_dist_fn_out, 'w') as fo:
     for g in final_groups:
       print('group: ' + str(g))
-      d = min_score_within_group(reads_dict[g], fn_in_tmp)
+      d = min_score_within_group(reads_dict[g], max_score, fn_in_tmp)
       fo.write(str(g) + ',' + str(d) + '\n')
 
   # write a table gp_id, shortest distance to another seq, CSV list of group ids with that distance
@@ -240,9 +244,10 @@ def main_method(cfg, num_groups, means_fn, internal_dist_fn_out, intergroup_dist
       fo.write(ans + '\n')
 
 if __name__ == '__main__': # debug: change this!
+  random.seed(RANDOM_SEED)
   cfg = ConfigParser.RawConfigParser(allow_no_value=True)
   cfg.read(os.path.expanduser('~/facs-seq/GPD/miseq/build_table_align_GPD.cfg'))
-  main_method(cfg, 10,
+  main_method(cfg, 40,
     means_fn = os.path.expanduser('~/facs-seq_test/GPD/means_trainable_GPD.csv'),
     internal_dist_fn_out = os.path.expanduser('~/facs-seq_test/internal_test.csv'), 
     intergroup_dist_fn_out = os.path.expanduser('~/facs-seq_test/intergroup_test.csv'))
