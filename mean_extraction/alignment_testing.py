@@ -167,13 +167,40 @@ def get_seqs_from_group_ids(group_ids, read_table_fn):
   ans = [ans_dict[q] for q in group_ids]
   return(ans)
 
+# given a final means table with sequences but no group ID, and a reads table with sequences and group IDs,
+# get a random selection of group IDs.
+def get_successful_groups(means_fn, read_table_fn, num_out):
+  # from the means file, select some random sequences
+  seqs = []
+  with open(means_fn, 'r') as fi:
+    is_header = True
+    for l in fi:
+      if is_header:
+        is_header = False
+      else:
+        seqs.append( l.strip().split(',')[0] )
+
+  random.shuffle(seqs)
+  seqs = seqs[:num_out]
+		
+  # from the read table, get the corresponding group IDs
+  seq_to_id = {}
+  with open(read_table_fn, 'r') as fi:
+    for l in fi:
+	  [seq, g] = l.strip().split(',')[:2]
+	  seq_to_id[seq] = g
+
+  ans = [seqs_to_id[q] for q in seqs]
+  return(ans)
+  
 # given a config object, get the following:
 # a table gp_id, longest internal distance for all groups above a certain number of reads
 # a 'table' gp_id, # reads, minimum distance to another group, comma-separated list of gp_ids with that distance, for all groups above a certain number of reads
 
-def main_method(cfg, num_groups, internal_dist_fn_out, intergroup_dist_fn_out, fn_in_tmp = FN_TMP_SEQS2):
+def main_method(cfg, num_groups, means_fn, internal_dist_fn_out, intergroup_dist_fn_out, fn_in_tmp = FN_TMP_SEQS2):
   #target_groups = get_biggest_groups(fn_in = os.path.expanduser(cfg.get('Output', 'file_fates')), aln_thresh = reads_thresh)
-  target_groups = get_random_groups(fn_in = os.path.expanduser(cfg.get('Output', 'file_fates')), num_out = num_groups)
+  #target_groups = get_random_groups(fn_in = os.path.expanduser(cfg.get('Output', 'file_fates')), num_out = num_groups)
+  target_groups = get_successful_groups(means_fn, os.path.expanduser(cfg.get('Output', 'file_aligned_filtered')), num_groups)
   target_seqs = get_seqs_from_group_ids(group_ids = target_groups, read_table_fn = os.path.expanduser(cfg.get('Output', 'file_aligned_filtered')))
   # drop groups without a seq found (meaning seq was dropped in filtering)
   final_groups = []
@@ -216,5 +243,6 @@ if __name__ == '__main__': # debug: change this!
   cfg = ConfigParser.RawConfigParser(allow_no_value=True)
   cfg.read(os.path.expanduser('~/facs-seq/GPD/miseq/build_table_align_GPD.cfg'))
   main_method(cfg, 10,
+    means_fn = os.path.expanduser('~/facs-seq_test/GPD/means_trainable_GPD.csv'),
     internal_dist_fn_out = os.path.expanduser('~/facs-seq_test/internal_test.csv'), 
     intergroup_dist_fn_out = os.path.expanduser('~/facs-seq_test/intergroup_test.csv'))
