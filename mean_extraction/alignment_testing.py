@@ -9,6 +9,7 @@
 # sequence-to-sequence Hamming distance
 # spacer-to-spacer gapped alignment? would need to be an in- and a del- in the same spacer... should be super rare
 
+import sys
 import os
 import ConfigParser
 import random
@@ -197,8 +198,8 @@ def get_successful_groups(means_fn, read_table_fn, num_out):
   return(ans)
 
 # given a config object, get the following:
-# a table gp_id, longest internal distance for all groups above a certain number of reads
-# a 'table' gp_id, # reads, minimum distance to another group, comma-separated list of gp_ids with that distance, for all groups above a certain number of reads
+# a table gp_id, longest internal distance for selected groups
+# a 'table' gp_id, # reads, minimum distance to another group, comma-separated list of gp_ids with that distance
 
 def main_method(cfg, num_groups, means_fn, internal_dist_fn_out, intergroup_dist_fn_out, fn_in_tmp = FN_TMP_SEQS2):
   max_score = len(cfg.get('Params','SEQ').strip())
@@ -243,11 +244,11 @@ def main_method(cfg, num_groups, means_fn, internal_dist_fn_out, intergroup_dist
       ans = str(g) + ',' + str(target_dist) + ',' + ','.join([str(q) for q in gps_out])
       fo.write(ans + '\n')
 
-if __name__ == '__main__': # debug: change this!
+if __name__ == '__main__': # see alignment_testing.sh
   random.seed(RANDOM_SEED)
   cfg = ConfigParser.RawConfigParser(allow_no_value=True)
-  cfg.read(os.path.expanduser('~/facs-seq/GPD/miseq/build_table_align_GPD.cfg'))
-  main_method(cfg, 40,
-    means_fn = os.path.expanduser('~/facs-seq_test/GPD/means_trainable_GPD.csv'),
-    internal_dist_fn_out = os.path.expanduser('~/facs-seq_test/internal_test.csv'), 
-    intergroup_dist_fn_out = os.path.expanduser('~/facs-seq_test/intergroup_test.csv'))
+  cfg.read(os.path.expanduser(sys.argv[1]))
+  main_method(cfg, int(sys.argv[2]),
+    means_fn = os.path.expanduser(sys.argv[3]),
+    internal_dist_fn_out = os.path.expanduser(sys.argv[4]), 
+    intergroup_dist_fn_out = os.path.expanduser(sys.argv[5]))
