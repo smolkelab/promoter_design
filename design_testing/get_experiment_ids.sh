@@ -1,0 +1,1 @@
+python get_experiment_ids.py ~/facs-seq_test/seq_designs/prediction_final_oligos.fa ~/facs-seq_test/design_testing/final_means.csv ~/facs-seq_test/design_testing/final_means_ids_added.csv CGTAAATAATTAATAGTAGTGAC TGTCTAAAGGTGAAGAATT

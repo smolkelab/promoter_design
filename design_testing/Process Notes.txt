@@ -1,0 +1,32 @@
+In this experiment, we have both GPD and ZEV reads - these are of different lengths, breaking an assumption in the current analysis pipeline.
+Although we know what sequences we want to see, many are going to be mis-assemblies of one kind or another. Not including these will make it impossible
+to accurately normalize by the cell count/read count ratio for each bin.
+Solution: run 'fastq_to_bin.py' twice, once for each length. This will yield two read tables, one for each length (GPD and ZEV). Use exact alignment to merge reads.
+Join the tables, and do mean extraction. Select out the desired sequences.
+
+Step-by-step workflow:
+Run PEAR on raw MiSeq output
+Create directories:
+~/facs-seq_test/design_testing/
+~/facs-seq_test/design_testing/fastq
+~/facs-seq_test/design_testing/miseq_GPD
+~/facs-seq_test/design_testing/miseq_ZEV
+
+move resulting FASTQ files to ~/facs-seq_test/design_testing/fastq
+run ./assign_bins_miseq_design_testing_GPD.sh; final reads are ~/facs-seq_test/design_testing/miseq_GPD/merged_reads_final.txt
+run ./assign_bins_miseq_design_testing_ZEV.sh; final reads are ~/facs-seq_test/design_testing/miseq_ZEV/merged_reads_final.txt
+run ./build_table_exact_design_testing_GPD.sh; final read table is ~/facs-seq_test/design_testing/miseq_GPD/final_merged_reads_GPD.csv
+run ./build_table_exact_design_testing_ZEV.sh; final read table is ~/facs-seq_test/design_testing/miseq_ZEV/final_merged_reads_ZEV.csv
+run ./merge_read_tables; final read table is at ~/facs-seq_test/design_testing/merged_read_table.csv
+run ./fit_means_all.sh; final means are at ~/facs-seq_test/design_testing/final_means.csv
+run ./get_experiment_ids.sh
+
+
+
+### Things to check during analysis ###
+
+Histogram of read lengths in the raw FASTQ files coming out of PEAR, to ensure there isn't a large population of things that are the wrong length,
+that get rejected despite having been sorted. (Don't expect this based on PCR gels, but need to check.)
+
+Strengths of control sequences: are there systematic errors due to getting cell counts or bin edges wrong?
+	-hard to figure out what's going on here - might have to guess and use the controls to figure it out
