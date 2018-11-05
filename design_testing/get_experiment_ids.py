@@ -3,6 +3,7 @@
 # and add columns to the means table 'Experiment' for the ID of this subpool and 'Design' for the ID of this design within the subpool.
 # Save the table with added columns as a new file.
 
+import sys
 import pandas as pd
 
 def simple_gg(fwd, rev):
@@ -32,11 +33,11 @@ def main(fn_designs, fn_means, fn_out, fwd_adapter, rev_adapter):
     lines = []; first = True
     for l in fd:
       lines.append(l)
-    if len(lines) == 4:
+      if len(lines) == 4:
         seq, experiment, design = process_one_design(lines, fwd_adapter, rev_adapter)
         design_dict[seq] = (experiment, design)
         lines = []
-  
+
   # read in the means
   means = pd.read_csv(fn_means)
   
@@ -47,7 +48,7 @@ def main(fn_designs, fn_means, fn_out, fwd_adapter, rev_adapter):
       ans = ('None',-1)
     return ans
   
-  dict_output = [design_dict[q] for q in means['Seqs']]
+  dict_output = [lookup_error_tolerant(design_dict, q) for q in means['Seqs']]
   experiments = [q[0] for q in dict_output]
   designs = [q[1] for q in dict_output]
   means['Experiment'] = experiments
@@ -55,5 +56,5 @@ def main(fn_designs, fn_means, fn_out, fwd_adapter, rev_adapter):
   means.to_csv(fn_out, index = False)
 
 if __name__ == '__main__':
-  [fn_designs, fn_means, fn_out, fwd_adapter, rev_adapter] = sys.argv[1:]
+  [fn_designs, fn_means, fn_out, fwd_adapter, rev_adapter] = [q.strip() for q in sys.argv[1:]]
   main(fn_designs, fn_means, fn_out, fwd_adapter, rev_adapter)

@@ -17,7 +17,7 @@ run ./assign_bins_miseq_design_testing_GPD.sh; final reads are ~/facs-seq_test/d
 run ./assign_bins_miseq_design_testing_ZEV.sh; final reads are ~/facs-seq_test/design_testing/miseq_ZEV/merged_reads_final.txt
 run ./build_table_exact_design_testing_GPD.sh; final read table is ~/facs-seq_test/design_testing/miseq_GPD/final_merged_reads_GPD.csv
 run ./build_table_exact_design_testing_ZEV.sh; final read table is ~/facs-seq_test/design_testing/miseq_ZEV/final_merged_reads_ZEV.csv
-run ./merge_read_tables; final read table is at ~/facs-seq_test/design_testing/merged_read_table.csv
+run ./merge_read_tables.sh; final read table is at ~/facs-seq_test/design_testing/merged_read_table.csv
 run ./fit_means_all.sh; final means are at ~/facs-seq_test/design_testing/final_means.csv
 run ./get_experiment_ids.sh
 
