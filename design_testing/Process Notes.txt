@@ -7,10 +7,10 @@ Join the tables, and do mean extraction. Select out the desired sequences.
 Step-by-step workflow:
 Run PEAR on raw MiSeq output
 Create directories:
-~/facs-seq_test/design_testing/
-~/facs-seq_test/design_testing/fastq
-~/facs-seq_test/design_testing/miseq_GPD
-~/facs-seq_test/design_testing/miseq_ZEV
+mkdir ~/facs-seq_test/design_testing/
+mkdir ~/facs-seq_test/design_testing/fastq
+mkdir ~/facs-seq_test/design_testing/miseq_GPD
+mkdir ~/facs-seq_test/design_testing/miseq_ZEV
 
 move resulting FASTQ files to ~/facs-seq_test/design_testing/fastq
 run ./assign_bins_miseq_design_testing_GPD.sh; final reads are ~/facs-seq_test/design_testing/miseq_GPD/merged_reads_final.txt
