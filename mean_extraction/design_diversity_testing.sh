@@ -1,0 +1,1 @@
+nohup python design_diversity_testing.py ~/facs-seq_test/seq_designs/all_FS9_seqs ~/facs-seq_test/seq_designs/diversity_test.csv > ~/facs-seq_test/seq_designs/diversity_test.log &
