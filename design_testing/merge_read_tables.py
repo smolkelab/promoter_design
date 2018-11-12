@@ -8,4 +8,4 @@ OUT_FN = os.path.expanduser('~/facs-seq_test/design_testing/merged_read_table.cs
 pd_gpd = pd.read_csv(GPD_READ_TABLE_FN)
 pd_zev = pd.read_csv(ZEV_READ_TABLE_FN)
 pd_out = pd.concat([pd_gpd, pd_zev])
-pd_out.to_csv(OUT_FN)
+pd_out.to_csv(OUT_FN, index = False)
