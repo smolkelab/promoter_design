@@ -1,6 +1,8 @@
 import sys
 import os
 import pandas as pd
+import hgbrian_GPU_NW
+import numba
 
 FN_TMP_SEQS = os.path.expanduser('~/facs-seq_test/seqs_tmp.txt')
 FN_TMP_SEQS2 = os.path.expanduser('~/facs-seq_test/seqs_tmp2.txt')
@@ -31,9 +33,12 @@ def get_all_dists_in_list_of_reads(reads, fn_tmp_seqs = FN_TMP_SEQS, fn_tmp_scor
     for i in range(len(reads)):
       for j in range(i+1, len(reads)):
         score = float(fi.next().strip())
-        # drop the next line; we don't need it
-        _ = fi.next()
         ans.append((reads[i], reads[j], score))
+        # drop the next line; we don't need it
+        try:
+          _ = fi.next()
+        except StopIteration:
+          pass
 
   os.remove(fn_tmp_seqs)
   os.remove(fn_tmp_scores)
@@ -44,6 +49,7 @@ def main(dir_in, fn_out):
   fns = [os.path.join(dir_in, q) for q in fns]
   ans = []
   for f in fns:
+    print f
     p = pd.read_csv(f)
     reads = p['Seqs']
     score_tuples = get_all_dists_in_list_of_reads(reads)
@@ -52,7 +58,7 @@ def main(dir_in, fn_out):
   with open(fn_out, 'w') as fo:
     fo.write('Read_1,Read_2,Score,Filename\n')
     for line in ans:
-      line = ','.join(line)
+      line = ','.join([str(q) for q in line])
       fo.write(line + '\n')
 
 if __name__ == '__main__':
