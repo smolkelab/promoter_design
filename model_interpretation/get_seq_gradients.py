@@ -53,10 +53,11 @@ def main(fn_in, fn_out):
   # mask out the constant bases
   grads = np.multiply(grads, evolver.mutable_mask[...,0])
 
-  np.save(fn_out, grads)
+  np.savetxt(fn_out, grads, delimiter = ',')
 
 if __name__ == '__main__':
   #fn_in = '/home/benkotopka/facs-seq_test/seq_designs/all_FS9_seqs/16_ZEV_induced_gcfilter_1sd_evolve-thresh_1.6_selected.txt'
-  fn_in = '/home/benkotopka/facs-seq_test/seq_designs/all_FS9_seqs/0_GPD_strong_nofilter_mean_screen_0.45_selected.txt'
-  fn_out = 'tmp'
+  #fn_in = '/home/benkotopka/facs-seq_test/seq_designs/all_FS9_seqs/0_GPD_strong_nofilter_mean_screen_0.45_selected.txt'
+  fn_in = '/home/benkotopka/facs-seq_test/seq_designs/all_FS9_seqs/10_GPD_strong_nofilter_1sd_gradient-thresh_0.75_selected.txt'
+  fn_out = '10_grads.csv'
   main(fn_in, fn_out)
