@@ -22,6 +22,54 @@ STRATEGIES = {'Screening':['screen','10000','seq_screening.py'],
               'Gradient to threshold':['gradient-thresh','500','seq_gradient_evolve_to_threshold.py'],
               'Gradient: cycle-limited':['gradient-cycle','500','seq_gradient_evolution.py']} # What evolution/screening strategy are we using?
 
+def build_one_cfg(i, promoter, objective, filter, function, strategy, threshold, fn_stem = None):
+  if fn_stem is None:
+    fn_stem = '_'.join([str(i), promoter, OBJECTIVES[objective][0], FILTERS[filter][0], FUNCTIONS[function][0], STRATEGIES[strategy][0], str(threshold)])
+  cfg = ConfigParser.RawConfigParser()
+  # Force case sensitivity, cf. https://stackoverflow.com/questions/1611799/preserve-case-in-configparser
+  cfg.optionxform=str
+
+  cfg.add_section('Dirs')
+  cfg.set('Dirs','weights_dir','~/facs-seq_test/joined/final_weights')
+  
+  cfg.add_section('Files')
+  cfg.set('Files','model_fn','~/facs-seq/models/do_model.py')
+  cfg.set('Files','preds_fn','~/facs-seq_test/seq_designs/preds/' + fn_stem + '.csv')
+  cfg.set('Files','rejected_fn', '~/facs-seq_test/seq_designs/rejected/' + fn_stem + '.txt')
+  cfg.set('Files','selected_fn', '~/facs-seq_test/seq_designs/selected/' + fn_stem + '_selected.txt')
+  cfg.set('Files','score_fn', '~/facs-seq_test/seq_designs/scores/' + fn_stem + '.csv')
+  
+  cfg.add_section('Functions')
+  cfg.set('Functions','merge_outputs_keras',OBJECTIVES[objective][2])
+  cfg.set('Functions','merge_outputs',OBJECTIVES[objective][1])
+  cfg.set('Functions','merge_models',FUNCTIONS[function][1])
+  cfg.set('Functions','seq_scores',FILTERS[filter][1])
+  cfg.set('Functions','seq_scores_keras',FILTERS[filter][3])
+  cfg.set('Functions','choose_best_seqs','seq_evolution.greedy_choose_best_seqs')
+  
+  cfg.add_section('Params')
+  cfg.set('Params','SEQ',PROMOTERS[promoter][0])
+  cfg.set('Params','SEQ_INDICES', PROMOTERS[promoter][1]) # Which indices in 'SEQ' are the "actual sequence," not just cloning homology? Used by the filter.
+  cfg.set('Params','N','25:25:25:25')
+  cfg.set('Params','M',FILTERS[filter][2]) # using the heavily AT-biased settings means we can't get anything through the GC filter
+  cfg.set('Params','H','33:33:0:33')
+  cfg.set('Params','INIT_NOISE','5e-1')
+  cfg.set('Params','NUM_SEQS',STRATEGIES[strategy][1])
+  cfg.set('Params','NUM_VARIANTS','20')
+  cfg.set('Params','WTS_EXT','.h5')
+  cfg.set('Params','OUTPUT_NAMES','A,B')
+  cfg.set('Params','RANDOM_SEED','2017')
+  cfg.set('Params','NUM_ITERS','250')
+  cfg.set('Params','REJECT_MOTIFS','GGTCTC,GAGACC')
+  cfg.set('Params','THRESH',threshold)
+  cfg.set('Params','NUM_SEQS_FINAL','120')
+  cfg.set('Params','PICK_TOP','True')
+  cfg.set('Params','NUM_MUTATIONS','20:50,10:50,3:50,1:100')
+  cfg.set('Params','KEEP_PARENT','False:200,True:50')
+  cfg.set('Params','GRADIENT_STEP','5e-2:100,1e-2:100,2e-3:50')
+  cfg.set('Params','NORMALIZE_POWER','1.:100,1.01:50,1.05:50,1.1:50')
+  return (cfg, fn_stem)
+
 if __name__ == '__main__':
   exps_p = pandas.read_csv(sys.argv[1])
   exps = {}
@@ -32,53 +80,10 @@ if __name__ == '__main__':
   assert(all([q in FILTERS for q in exps['Filter']]))
   assert(all([q in FUNCTIONS for q in exps['Function']]))
   assert(all([q in STRATEGIES for q in exps['Strategy']]))
-
   for i, (promoter, objective, filter, function, strategy, threshold) in enumerate(zip(exps['Promoter'], exps['Objective'], exps['Filter'], 
                                                                         exps['Function'], exps['Strategy'], exps['Threshold'])):
-    fn_stem = '_'.join([str(i), promoter, OBJECTIVES[objective][0], FILTERS[filter][0], FUNCTIONS[function][0], STRATEGIES[strategy][0], str(threshold)])
-    cfg = ConfigParser.RawConfigParser()
-    # Force case sensitivity, cf. https://stackoverflow.com/questions/1611799/preserve-case-in-configparser
-    cfg.optionxform=str
 
-    cfg.add_section('Dirs')
-    cfg.set('Dirs','weights_dir','~/facs-seq_test/joined/final_weights')
-    
-    cfg.add_section('Files')
-    cfg.set('Files','model_fn','~/facs-seq/models/do_model.py')
-    cfg.set('Files','preds_fn','~/facs-seq_test/seq_designs/preds/' + fn_stem + '.csv')
-    cfg.set('Files','rejected_fn', '~/facs-seq_test/seq_designs/rejected/' + fn_stem + '.txt')
-    cfg.set('Files','selected_fn', '~/facs-seq_test/seq_designs/selected/' + fn_stem + '_selected.txt')
-    cfg.set('Files','score_fn', '~/facs-seq_test/seq_designs/scores/' + fn_stem + '.csv')
-    
-    cfg.add_section('Functions')
-    cfg.set('Functions','merge_outputs_keras',OBJECTIVES[objective][2])
-    cfg.set('Functions','merge_outputs',OBJECTIVES[objective][1])
-    cfg.set('Functions','merge_models',FUNCTIONS[function][1])
-    cfg.set('Functions','seq_scores',FILTERS[filter][1])
-    cfg.set('Functions','seq_scores_keras',FILTERS[filter][3])
-    cfg.set('Functions','choose_best_seqs','seq_evolution.greedy_choose_best_seqs')
-    
-    cfg.add_section('Params')
-    cfg.set('Params','SEQ',PROMOTERS[promoter][0])
-    cfg.set('Params','SEQ_INDICES', PROMOTERS[promoter][1]) # Which indices in 'SEQ' are the "actual sequence," not just cloning homology? Used by the filter.
-    cfg.set('Params','N','25:25:25:25')
-    cfg.set('Params','M',FILTERS[filter][2]) # using the heavily AT-biased settings means we can't get anything through the GC filter
-    cfg.set('Params','H','33:33:0:33')
-    cfg.set('Params','INIT_NOISE','5e-1')
-    cfg.set('Params','NUM_SEQS',STRATEGIES[strategy][1])
-    cfg.set('Params','NUM_VARIANTS','20')
-    cfg.set('Params','WTS_EXT','.h5')
-    cfg.set('Params','OUTPUT_NAMES','A,B')
-    cfg.set('Params','RANDOM_SEED','2017')
-    cfg.set('Params','NUM_ITERS','250')
-    cfg.set('Params','REJECT_MOTIFS','GGTCTC,GAGACC')
-    cfg.set('Params','THRESH',threshold)
-    cfg.set('Params','NUM_SEQS_FINAL','120')
-    cfg.set('Params','PICK_TOP','True')
-    cfg.set('Params','NUM_MUTATIONS','20:50,10:50,3:50,1:100')
-    cfg.set('Params','KEEP_PARENT','False:200,True:50')
-    cfg.set('Params','GRADIENT_STEP','5e-2:100,1e-2:100,2e-3:50')
-    cfg.set('Params','NORMALIZE_POWER','1.:100,1.01:50,1.05:50,1.1:50')
+    (cfg, fn_stem) = build_one_cfg(i, promoter, objective, filter, function, strategy, threshold)
     cfg.write(open(os.path.join('designs',fn_stem + '.cfg'), 'w'))
     script = 'time python ../' + STRATEGIES[strategy][2] + ' ' + fn_stem + '.cfg > ~/facs-seq_test/seq_designs/logs/' + fn_stem + '.log 2>&1\n'
     script_fn = os.path.join('designs',fn_stem + '.sh')
