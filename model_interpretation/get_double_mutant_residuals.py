@@ -20,16 +20,18 @@ def reduce_grid(grid_in, x_true, y_true):
   for i in range(grid_ref.shape[0]):
     for j in range(grid_ref.shape[1]):
       grid_ref[i,j] = grid_in[x_true,j] + grid_in[i,y_true]
-
-  return grid_in - grid_ref
+  return np.max(grid_in - grid_ref)
 
 def main(seq_in, fn_in, fn_out):
   seq_in_oh = one_hot_encode(seq_in).squeeze()
   dat_in = np.loadtxt(fn_in, delimiter = ',')
-  ans = np.zeros(shape = (dat_in.shape[0]/4, dat_in.shape[1]/4))
-  for i in range(seq_in_oh.shape[0]):
-    for j in range(seq_in_oh.shape[1]):
-      ans[i,j] = reduce_grid(dat_in[4*i:4*(i+1), 4*j:4*(j+1)], np.where(seq_in_oh[i,:])[0][0], np.where(seq_in_oh[j,:])[0][0])
+  ans = np.zeros(shape = (seq_in_oh.shape[0], seq_in_oh.shape[0]))
+  for i in range(ans.shape[0]):
+    for j in range(ans.shape[1]):
+      grid_in = dat_in[(4*i):(4*(i+1)), (4*j):(4*(j+1))]
+      i_coor = np.where(seq_in_oh[i,:])[0][0]
+      j_coor = np.where(seq_in_oh[j,:])[0][0]
+      ans[i,j] = reduce_grid(grid_in, i_coor, j_coor)
 
   np.savetxt(fn_out, ans, delimiter = ',')
 
