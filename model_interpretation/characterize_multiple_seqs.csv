@@ -1,0 +1,9 @@
+~/facs-seq_test/seq_designs/all_FS9_seqs/0_GPD_strong_nofilter_mean_screen_0.45_selected.txt,0
+~/facs-seq_test/seq_designs/all_FS9_seqs/2_GPD_strong_nofilter_mean_evolve-thresh_0.6_selected.txt,0
+~/facs-seq_test/seq_designs/all_FS9_seqs/4_GPD_strong_gcfilter_mean_evolve-thresh_0.6_selected.txt,0
+~/facs-seq_test/seq_designs/all_FS9_seqs/11_ZEV_induced_nofilter_mean_screen_1.45_selected.txt,0
+~/facs-seq_test/seq_designs/all_FS9_seqs/13_ZEV_induced_nofilter_mean_evolve-thresh_1.6_selected.txt,0
+~/facs-seq_test/seq_designs/all_FS9_seqs/15_ZEV_induced_gcfilter_mean_evolve-thresh_1.6_selected.txt,0
+~/facs-seq_test/seq_designs/all_FS9_seqs/22_ZEV_AR_nofilter_mean_screen_1.75_selected.txt,0
+~/facs-seq_test/seq_designs/all_FS9_seqs/24_ZEV_AR_nofilter_mean_evolve-thresh_1.85_selected.txt,0
+~/facs-seq_test/seq_designs/all_FS9_seqs/26_ZEV_AR_gcfilter_mean_evolve-thresh_1.85_selected.txt,0
