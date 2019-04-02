@@ -8,6 +8,7 @@
 # as in 'get_seq_gradients.py'.
 
 import sys
+import os
 sys.path.append('../seq_design')
 import seq_evolution
 sys.path.append('../models')
@@ -35,19 +36,36 @@ def get_single_mutants(seq_in_oh, mutable, keep_orig = True):
   mutants = np.stack(mutants, axis = 0)
   return mutants, mutants_key
 
-def main(seq_in, fn_template, fn_out):
-  cfg = build_design_cfgs.build_one_cfg(*parse_fn_in(fn_in))
+def main(seq_in, fn_template, fn_out, as_diff = True):
+  (cfg, _) = build_design_cfgs.build_one_cfg(*parse_fn_in(fn_template))
   evolver = seq_evolution.seq_evolution_class(cfg)
-  seq_in_oh = one_hot_encode(seq_in)
-  mutants, mutants_key = get_single_mutants(seq_in_oh, evolver.mutable)
+  seq_in_oh = one_hot_encode(seq_in).squeeze()
+  #print seq_in_oh.shape # (363,4)
+  mutants, mutants_key = get_single_mutants(seq_in_oh, evolver.mutable, keep_orig = as_diff)
+  #print mutants.shape # (778, 363, 4)
 
-  preds = evolver._reshaping_test_sequences(mutants)
-  preds = np.apply_along_axis(evolver.params['merge_outputs'], 2, preds)
+  preds = evolver._test_sequences(np.swapaxes(mutants,1,2)) # actually reversing another 'swapaxes' in this function
+  #print preds.shape # (778, 2, 9)
+  preds = np.apply_along_axis(evolver.params['merge_outputs'], 1, preds)
+  preds = np.apply_along_axis(evolver.params['merge_models'], 1, preds)
+
+  if as_diff:
+    str_orig = preds[-1]
+
   ans = np.zeros(shape = seq_in_oh.shape)
   for ((m,i), pred) in zip(mutants_key, preds):
     if m is None or i is None:
-      str_orig = pred
-    else
-    ans[m,i] = pred
+      pass #str_orig = pred
+    else:
+      if as_diff:
+        ans[m,i] = pred - str_orig
+      else:
+        ans[m,i] = pred
 
   np.savetxt(fn_out, ans, delimiter = ',')
+
+if __name__ == '__main__':
+  fn_template = '~/facs-seq_test/seq_design/all_FS9_seqs/0_GPD_strong_nofilter_mean_screen_0.45_selected.txt'
+  seq_in = 'TACGTAAATAATTAATAGTAGTGACCGGGCCGATAGATGAGTCATTAGGGATTCCGCTCGCCCTGTGTCTGGGTGTTGCGGCATCCGGCATCCAGTAGTGGGTGTAGAATTGTGTGATAGGCATCCAGTGTCTGCATCCCAGCCACACCCCACTTTAGCACTATTTTCACCAGTGCGCCGCTCCCGTTGTCAATGGGTCTACCCCCTGTTTTCCAGGAGGTATATAAAGGAATGGTTTTTCGCGTTATCGATTTATATTATATGTTAATAAAAAATGGTATTTAATTTTTATTTCACCAAGTCCAATTCTCAATTCTCTCATAACTACATTTACTCAATGTCTAAAGGTGAAGAATTATTCAC'
+  fn_out = 'char_mut_0_0.csv'
+  main(seq_in, fn_template, fn_out)
