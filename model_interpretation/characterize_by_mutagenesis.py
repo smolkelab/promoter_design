@@ -75,12 +75,12 @@ def get_double_mutant_pred_array(seq_orig, mutable, single_mutant_preds, single_
               if b == base_j:
                 ans[pos_x, pos_y] = 0. # this is the WT sequence - just for clarity
               else: # b is the (single) mutant
-                ans[pos_x, pos_y] = single_dict[(j,b)] - true_str
+                ans[pos_x, pos_y] = single_dict[(j,b)] - str_orig
             else:
               if b == base_j: # a is the (single) mutant
-                ans[pos_x, pos_y] = single_dict[(i,a)] - true_str
+                ans[pos_x, pos_y] = single_dict[(i,a)] - str_orig
               else: # this is a true double mutant
-                ans[pos_x, pos_y] = double_dict[(i,a,j,b)] - true_str
+                ans[pos_x, pos_y] = double_dict[(i,a,j,b)] - str_orig
   return ans
 
 def get_preds(mutants, evolver):
@@ -119,7 +119,7 @@ def main_double(seq_in, fn_template, fn_out):
   single_mutant_preds = get_preds(single_mutants, evolver)
   double_mutant_preds = get_preds(double_mutants, evolver)
   arr_out = get_double_mutant_pred_array(seq_in_oh, evolver.mutable, single_mutant_preds, single_mutants_key, double_mutant_preds, double_mutants_key)
-  np.savetxt(fn_out, ans, delimiter = ',')
+  np.savetxt(fn_out, arr_out, delimiter = ',')
 
 
 if __name__ == '__main__':
