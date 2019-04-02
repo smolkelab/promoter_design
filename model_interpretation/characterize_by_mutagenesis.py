@@ -66,7 +66,7 @@ def get_double_mutant_pred_array(seq_orig, mutable, single_mutant_preds, single_
   ans = np.zeros(shape = (ans_size, ans_size))
   for i in range(num_pos):
     for j in range(num_pos):
-      if i in mutable and j in mutable:
+      if i in mutable and j in mutable and i != j: # changing the same base twice is meaningless
         base_i = np.where(seq_orig[i,:])[0][0]; base_j = np.where(seq_orig[j,:])[0][0] # what where the original bases at these locations?
         for a in range(num_bases):
           for b in range(num_bases):
