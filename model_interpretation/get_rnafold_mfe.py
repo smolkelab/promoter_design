@@ -28,26 +28,23 @@ def csv_to_fasta(fn_in, dir_in, dir_tmp, utr_bases, context):
 
 def fold_file(dir_in, fn_in, dir_out):
   fn_out = fn_in.split('.')[0] + '.txt'
-  p = subprocess.Popen(['RNAfold', os.path.join(dir_in, fn_in), '>', os.path.join(fn_out, dir_out)], stdout=subprocess.PIPE)
-  p.wait()
+  with open(os.path.join(dir_out, fn_out), 'w') as fo:
+    p = subprocess.Popen(['RNAfold', os.path.join(dir_in, fn_in)], stdout=fo)
+    p.wait()
   return fn_out
 
 def read_mfes(dir_in, fn_in):
   fn = os.path.join(dir_in, fn_in)
-  # fn will contain alternating lines of sequences and output, formatted as 'structure (mfe)''
+  # fn will contain three-line records: two lines of FASTA input and one of output, formatted as 'structure (mfe)'
   ans = []
-  read = False
   with open(fn, 'r') as fi:
-    for l in fi:
-      if read:
-        read = False
+    for (i,l) in enumerate(fi):
+      if i % 3 == 2:
         l = l.strip().split(' ')
         assert(len(l) == 2)
         mfe = float(l[1][1:-1])
         ans.append(mfe)
 
-      else:
-        read = True
   return ans
 
 def process_one_file(fn_in, dir_in, dir_tmp, dir_out, fn_out, utr_bases, context):
@@ -62,7 +59,7 @@ def process_one_file(fn_in, dir_in, dir_tmp, dir_out, fn_out, utr_bases, context
 
   # write MFEs and original file content to output file
   first = True
-  with open(os.path.join(dir_in, fn_in), 'r') as fi, open(os.path.join(dir_out, fn_out)) as fo:
+  with open(os.path.join(dir_in, fn_in), 'r') as fi, open(os.path.join(dir_out, fn_out), 'w') as fo:
     for l in fi:
       if first:
         first = False
@@ -72,19 +69,19 @@ def process_one_file(fn_in, dir_in, dir_tmp, dir_out, fn_out, utr_bases, context
 
 def main(cfg):
   dir_tmp = tempfile.mkdtemp()
-  try:
-    dir_in = os.path.expanduser(cfg.get('Dirs', 'dir_in'))
-    dir_out = os.path.expanduser(cfg.get('Dirs', 'dir_out'))
-    context = cfg.get('Params', 'context').split(',')
-    fns_table = cfg.get('Params', 'fns_table')
-    with open(fns_table, 'r') as fi:
-      for l in fi:
-        [fn_in, fn_out, utr_start, utr_end] = l.strip().split(',')
-        utr_bases = [int(utr_start), int(utr_end)]
-        process_one_file(fn_in, dir_in, , dir_out, fn_out, utr_bases, context)
+  #try:
+  dir_in = os.path.expanduser(cfg.get('Dirs', 'dir_in'))
+  dir_out = os.path.expanduser(cfg.get('Dirs', 'dir_out'))
+  context = cfg.get('Params', 'context').split(',')
+  fns_table = cfg.get('Params', 'fns_table')
+  with open(fns_table, 'r') as fi:
+    for l in fi:
+      [fn_in, fn_out, utr_start, utr_end] = l.strip().split(',')
+      utr_bases = [int(utr_start), int(utr_end)]
+      process_one_file(fn_in, dir_in, dir_tmp, dir_out, fn_out, utr_bases, context)
 
-  finally:
-    os.rmdir(dir_tmp)
+  #finally:
+  os.rmdir(dir_tmp)
 
 if __name__ == '__main__':
   cfg = ConfigParser.RawConfigParser(allow_no_value=True)
