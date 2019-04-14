@@ -41,8 +41,14 @@ def read_mfes(dir_in, fn_in):
     for (i,l) in enumerate(fi):
       if i % 3 == 2:
         l = l.strip().split(' ')
-        assert(len(l) == 2)
-        mfe = float(l[1][1:-1])
+        l = ' '.join(l[1:])
+        #try:
+        #  assert(len(l) == 2)
+        #except AssertionError:
+        #  print(l)
+        #  print(len(l))
+        #  raise Exception('RNAfold output not parsed correctly')
+        mfe = float(l[1:-1].strip())
         ans.append(mfe)
 
   return ans
@@ -70,13 +76,14 @@ def process_one_file(fn_in, dir_in, dir_tmp, dir_out, fn_out, utr_bases, context
 def main(cfg):
   dir_tmp = tempfile.mkdtemp()
   #try:
-  dir_in = os.path.expanduser(cfg.get('Dirs', 'dir_in'))
+  #dir_in = os.path.expanduser(cfg.get('Dirs', 'dir_in'))
   dir_out = os.path.expanduser(cfg.get('Dirs', 'dir_out'))
   context = cfg.get('Params', 'context').split(',')
   fns_table = cfg.get('Params', 'fns_table')
   with open(fns_table, 'r') as fi:
     for l in fi:
-      [fn_in, fn_out, utr_start, utr_end] = l.strip().split(',')
+      [dir_in, fn_in, fn_out, utr_start, utr_end] = l.strip().split(',')
+      dir_in = os.path.expanduser(dir_in)
       utr_bases = [int(utr_start), int(utr_end)]
       process_one_file(fn_in, dir_in, dir_tmp, dir_out, fn_out, utr_bases, context)
 
