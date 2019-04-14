@@ -17,7 +17,7 @@ DNA = ['A','C','G','T']
 
 class seq_evolution_class(object):
 
-  def __init__(self, cfg):
+  def __init__(self, cfg, loaded_models = None):
     print('Building evolver...')
     self.cfg = cfg
     self.params = self.unpack_params()
@@ -38,7 +38,7 @@ class seq_evolution_class(object):
     
     random.seed(self.random_seed); np.random.seed(self.random_seed)
     self._populate_sequences()
-    self._prepare_models()
+    self._prepare_models(loaded_models)
     print('Evolver built.')
 
   # apply rules for extracting parameters from a config
@@ -108,7 +108,7 @@ class seq_evolution_class(object):
       s[choice(self.base_probs.shape[0], size = None, p = self.base_probs[:,i]), i] = 1.
     return(s)
 
-  def _prepare_models(self):
+  def _prepare_models(self, loaded_models):
     # get the model-building code and the filenames of weights to use
     do_model = imp.load_source('do_model', os.path.expanduser(self.cfg.get('Files','model_fn')))
     self.shift = do_model.SHIFT
@@ -120,10 +120,13 @@ class seq_evolution_class(object):
     dat_to_use = [ [np.zeros(1,), np.zeros(1,)],[np.zeros(1,), np.zeros(1,)],[np.zeros(1,), np.zeros(1,)], self.base_probs.shape[1] ] # last entry is length of sequence
     self.output_names = self.cfg.get('Params','OUTPUT_NAMES').strip().split(',')
     self.num_outputs = len(self.output_names)
-    for i in self.weight_fns:
-      this_model = do_model.do_model(dat_to_use, self.num_outputs, train = False)
-      this_model.load_weights(i)
-      self.models.append(this_model)
+    if loaded_models is None:
+      for i in self.weight_fns:
+        this_model = do_model.do_model(dat_to_use, self.num_outputs, train = False)
+        this_model.load_weights(i)
+        self.models.append(this_model)
+    else:
+      self.models = loaded_models
 
   # input is one-hot array with shape (num_seqs, len(DNA), len(seq); output is float array with shape (num_seqs, num_outputs, len(self.models))
   # NB in practice, an array with multiple new variants of each sequence will need to be carefully reshaped;
