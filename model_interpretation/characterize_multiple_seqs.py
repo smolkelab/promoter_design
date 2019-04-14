@@ -22,7 +22,7 @@ def process_one_sequence(seq_id, source_file, dir_out, loaded_models = None, do_
     loaded_models = characterize_by_mutagenesis.main_double(seq, source_file, fn_tmp, loaded_models = loaded_models)
     get_double_mutant_residuals.main(seq, fn_tmp, os.path.join(dir_out, seq_dir_name, seq_dir_name + '_double_corr.csv'), get_double_mutant_residuals.MERGE_DICT[2])
     get_double_mutant_residuals.main(seq, fn_tmp, os.path.join(dir_out, seq_dir_name, seq_dir_name + '_double_l2.csv'), get_double_mutant_residuals.MERGE_DICT[3])
-  os.remove(fn_tmp)
+    os.remove(fn_tmp)
   return loaded_models
 
 def main(table_fn, dir_out):
