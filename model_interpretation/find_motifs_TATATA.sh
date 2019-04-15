@@ -1,0 +1,1 @@
+python find_and_score_motifs.py find_motifs_TATATA.csv
