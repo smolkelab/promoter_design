@@ -13,24 +13,7 @@ DNA_POS = {q:i for (i,q) in enumerate(DNA)}
 BIG_POS = 100000.
 
 # IUPAC standard base codes: sometimes multiple positions equal 0.
-IUPAC = { np.array(True, True, True, True): 'N',
-          np.array(True, True, True, False): 'V',
-          np.array(True, True, False, True): 'H',
-          np.array(True, True, False, False): 'M',
-          np.array(True, False, True, True): 'D',
-          np.array(True, False, True, False): 'R',
-          np.array(True, False, False, True): 'W',
-          np.array(True, False, False, False): 'A',
-          np.array(False, True, True, True): 'B',
-          np.array(False, True, True, False): 'S',
-          np.array(False, True, False, True): 'Y',
-          np.array(False, True, False, False): 'C',
-          np.array(False, False, True, True): 'K',
-          np.array(False, False, True, False): 'G',
-          np.array(False, False, False, True): 'T',
-          np.array(False, False, False, False): '-',
-
-}
+IUPAC = {i:q for (i,q) in enumerate(['-','T','G','K','C','Y','S','B','A','W','R','D','M','H','V','N'])}
 
 # 'seq_mat' is a score matrix; row for each position, column for each base (A,C,G,T)
 # for each possible window, find if the subsequence matches the motif; if yes, get the mean score diff of all mutations
@@ -54,8 +37,10 @@ def mat_to_score(mat):
 
 def get_seq(mat):
   ans = []
+  pow_arr = [2**q for q in range(mat.shape[1]-1,-1,-1)]
   for x in mat:
     x = x == 0.
+    x = int(np.sum(x*pow_arr))
     x = IUPAC[x]
     ans.append(x)
   return(x)
