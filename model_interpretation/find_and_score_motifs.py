@@ -28,6 +28,8 @@ def matches_seq(seq_mat, seq):
     base_id = DNA_POS[base]
     if np.any(row[base_id] != 0.):
       return False
+  print seq_mat
+  print seq
   return True
 
 def find_strength_pos(seq_mat, seq):
@@ -35,8 +37,9 @@ def find_strength_pos(seq_mat, seq):
   min_pos = -1
   for i in range(seq_mat.shape[0] - len(seq) + 1):
     window = seq_mat[i:i+len(seq),]
-    score = mat_to_score(window)
-    min_score = min(min_score, score)
+    if matches_seq(window, seq):
+      score = mat_to_score(window)
+      min_score = min(min_score, score)
     min_pos = i
 
   return(min_score, min_pos)
