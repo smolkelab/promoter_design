@@ -1,0 +1,4 @@
+python find_and_score_motifs.py find_motifs_TATATA.csv
+python find_and_score_motifs.py find_motifs_AR_ZEV_1.csv
+python find_and_score_motifs.py find_motifs_AR_ZEV_2.csv
+python find_and_score_motifs.py find_motifs_AR_ZEV_3.csv
