@@ -23,10 +23,13 @@ def mat_to_seq_and_score(mat):
     if np.all(mat[i,:] == np.array([0.,0.,0.,0.])):
       ans.append('N')
     else:
+      print mat[i,:]
       idx = np.where(mat[i,:] == np.min(mat[i,:]))[0]
+      print i
+      print idx
       assert idx.shape == (1,)
       ans.append(DNA[idx[0]])
-      muts.append(np.sum(mat[i,:])) # will be the 3 values we need plus 0.
+      muts += np.sum(mat[i,:]) # will be the 3 values we need plus 0.
   seq = ''.join(ans)
   num_muts = mat.shape[0]*(mat.shape[1] - 1)
   return (seq, muts/num_muts)
@@ -45,15 +48,16 @@ def find_strength_pos(seq_mat, seq):
 
 def process_one_file(fn_in, fn_out, dir_single_muts, motif_seq, min_pos, max_pos):
   dat_in = pd.read_csv(fn_in)
-  dat_in = dat_in[min_pos:max_pos,:]
   fn_stem = fn_in.split('/')[-1]
   fn_stem = '.'.join(fn_stem.split('.')[:-1])
   scores = []
   poses = []
   for i in range(dat_in.shape[0]):
     fn_muts = os.path.join(dir_single_muts, fn_stem + '_' + str(i) + '_single.csv')
-    mat_muts = np.loadtxt(fn_muts, delimiter = ',')
+    mat_muts = np.loadtxt(fn_muts, delimiter = ',')[min_pos:max_pos,]
     (score, pos) = find_strength_pos(mat_muts, motif_seq)
+    # express 'pos' in terms of the original sequence
+    pos = pos + min_pos
     scores.append(score); poses.append(pos)
   dat_in['Mut_score'] = scores
   dat_in['Pos'] = poses
