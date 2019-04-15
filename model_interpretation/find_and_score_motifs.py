@@ -43,7 +43,7 @@ def get_seq(mat):
     x = int(np.sum(x*pow_arr))
     x = IUPAC[x]
     ans.append(x)
-  return(x)
+  return ''.join(ans)
 
 def find_strength_pos_seq(seq_mat, motif_len):
   min_score = BIG_POS
@@ -53,7 +53,7 @@ def find_strength_pos_seq(seq_mat, motif_len):
     window = seq_mat[i:i+motif_len,]
     score = mat_to_score(window)
     if score < min_score:
-      score = min_score
+      min_score = score
       min_pos = i
       min_seq = get_seq(window)
 
