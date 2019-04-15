@@ -9,40 +9,35 @@ import numpy as np
 import pandas as pd
 
 DNA = ['A','C','G','T']
+DNA_POS = {q:i for (i,q) in enumerate(DNA)}
 BIG_POS = 100000.
 
 # 'seq_mat' is a score matrix; row for each position, column for each base (A,C,G,T)
 # for each possible window, find if the subsequence matches the motif; if yes, get the mean score diff of all mutations
 # return the index and score of the biggest motif
 
-def mat_to_seq_and_score(mat):
-  ans = []
-  muts = 0.
-  mat = np.abs(mat)
-  for i in range(mat.shape[0]):
-    if np.all(mat[i,:] == np.array([0.,0.,0.,0.])):
-      ans.append('N')
-    else:
-      print mat[i,:]
-      idx = np.where(mat[i,:] == np.min(mat[i,:]))[0]
-      print i
-      print idx
-      assert idx.shape == (1,)
-      ans.append(DNA[idx[0]])
-      muts += np.sum(mat[i,:]) # will be the 3 values we need plus 0.
-  seq = ''.join(ans)
-  num_muts = mat.shape[0]*(mat.shape[1] - 1)
-  return (seq, muts/num_muts)
+def mat_to_score(mat):
+  muts = np.sum(mat)
+  num_muts = float(mat.shape[0]*(mat.shape[1] - 1))
+  return muts/num_muts
+
+def matches_seq(seq_mat, seq):
+  if seq_mat.shape[0] != len(seq):
+    return False
+  for (row, base) in zip(seq_mat, seq):
+    base_id = DNA_POS[base]
+    if np.any(row[base_id] != 0.):
+      return False
+  return True
 
 def find_strength_pos(seq_mat, seq):
   min_score = BIG_POS
   min_pos = -1
   for i in range(seq_mat.shape[0] - len(seq) + 1):
     window = seq_mat[i:i+len(seq),]
-    (w_seq, score) = mat_to_seq_and_score(window)
-    if w_seq == seq:
-      min_score = min(min_score, score)
-      min_pos = i
+    score = mat_to_score(window)
+    min_score = min(min_score, score)
+    min_pos = i
 
   return(min_score, min_pos)
 
