@@ -1,5 +1,5 @@
 
-# Given a sequence, find whether it has an upstream TATA box, and determine the box's position and strength
+# Given a sequence, find the lowest-scoring motif of a given length, and find out what the motif is
 # define position as the first base of the motif
 # define strength as the mean loss in strength due to a mutation in the motif
 # if there are multiple TATA boxes, return the strongest
@@ -12,6 +12,26 @@ DNA = ['A','C','G','T']
 DNA_POS = {q:i for (i,q) in enumerate(DNA)}
 BIG_POS = 100000.
 
+# IUPAC standard base codes: sometimes multiple positions equal 0.
+IUPAC = { np.array(True, True, True, True): 'N',
+          np.array(True, True, True, False): 'V',
+          np.array(True, True, False, True): 'H',
+          np.array(True, True, False, False): 'M',
+          np.array(True, False, True, True): 'D',
+          np.array(True, False, True, False): 'R',
+          np.array(True, False, False, True): 'W',
+          np.array(True, False, False, False): 'A',
+          np.array(False, True, True, True): 'B',
+          np.array(False, True, True, False): 'S',
+          np.array(False, True, False, True): 'Y',
+          np.array(False, True, False, False): 'C',
+          np.array(False, False, True, True): 'K',
+          np.array(False, False, True, False): 'G',
+          np.array(False, False, False, True): 'T',
+          np.array(False, False, False, False): '-',
+
+}
+
 # 'seq_mat' is a score matrix; row for each position, column for each base (A,C,G,T)
 # for each possible window, find if the subsequence matches the motif; if yes, get the mean score diff of all mutations
 # return the index and score of the biggest motif
@@ -21,7 +41,7 @@ def mat_to_score(mat):
   num_muts = float(mat.shape[0]*(mat.shape[1] - 1))
   return muts/num_muts
 
-def matches_seq(seq_mat, seq):
+'''def matches_seq(seq_mat, seq):
   if seq_mat.shape[0] != len(seq):
     return False
   for (row, base) in zip(seq_mat, seq):
@@ -30,44 +50,56 @@ def matches_seq(seq_mat, seq):
       return False
   print seq_mat
   print seq
-  return True
+  return True'''
 
-def find_strength_pos(seq_mat, seq):
+def get_seq(mat):
+  ans = []
+  for x in mat:
+    x = x == 0.
+    x = IUPAC[x]
+    ans.append(x)
+  return(x)
+
+def find_strength_pos_seq(seq_mat, motif_len):
   min_score = BIG_POS
   min_pos = -1
-  for i in range(seq_mat.shape[0] - len(seq) + 1):
-    window = seq_mat[i:i+len(seq),]
-    if matches_seq(window, seq):
-      score = mat_to_score(window)
-      min_score = min(min_score, score)
-    min_pos = i
+  min_seq = ''
+  for i in range(seq_mat.shape[0] - motif_len + 1):
+    window = seq_mat[i:i+motif_len,]
+    score = mat_to_score(window)
+    if score < min_score:
+      score = min_score
+      min_pos = i
+      min_seq = get_seq(window)
 
-  return(min_score, min_pos)
+  return(min_score, min_pos, min_seq)
 
-def process_one_file(fn_in, fn_out, dir_single_muts, motif_seq, min_pos, max_pos):
+def process_one_file(fn_in, fn_out, dir_single_muts, motif_len, min_pos, max_pos):
   dat_in = pd.read_csv(fn_in)
   fn_stem = fn_in.split('/')[-1]
   fn_stem = '.'.join(fn_stem.split('.')[:-1])
   scores = []
   poses = []
+  motifs = []
   for i in range(dat_in.shape[0]):
     fn_muts = os.path.join(dir_single_muts, fn_stem + '_' + str(i) + '_single.csv')
     mat_muts = np.loadtxt(fn_muts, delimiter = ',')[min_pos:max_pos,]
-    (score, pos) = find_strength_pos(mat_muts, motif_seq)
+    (score, pos, seq) = find_strength_pos_seq(mat_muts, motif_len)
     # express 'pos' in terms of the original sequence
     pos = pos + min_pos
-    scores.append(score); poses.append(pos)
+    scores.append(score); poses.append(pos); motifs.append(seq)
   dat_in['Mut_score'] = scores
   dat_in['Pos'] = poses
+  dat_in['Motif'] = motifs
   dat_in.to_csv(fn_out)
 
 def main(fn_csv):
   with open(fn_csv, 'r') as fi:
     for l in fi:
-      [fn_in, fn_out, dir_single_muts, motif_seq, min_pos, max_pos] = l.strip().split(',')
+      [fn_in, fn_out, dir_single_muts, motif_len, min_pos, max_pos] = l.strip().split(',')
       [fn_in, fn_out, dir_single_muts] = [os.path.expanduser(q) for q in [fn_in, fn_out, dir_single_muts]]
-      min_pos = int(min_pos); max_pos = int(max_pos)
-      process_one_file(fn_in, fn_out, dir_single_muts, motif_seq, min_pos, max_pos)
+      min_pos = int(min_pos); max_pos = int(max_pos); motif_len = int(motif_len)
+      process_one_file(fn_in, fn_out, dir_single_muts, motif_len, min_pos, max_pos)
 
 if __name__ == '__main__':
   main(sys.argv[1])
