@@ -10,16 +10,16 @@ import pandas
 import numpy as np
 import ConfigParser
 
-def munge_one_line(l, mins, maxes, m_range, take_mean):
+def munge_one_line(l, mins, maxes, m_range, take_mean, compats):
   l = l.strip().split(',')
   seq = l[0]
   means = np.array([float(q) for q in l[1:]])
   for i, pair in enumerate(zip(mins, maxes)):
     this_min, this_max = pair
-    if means[i] < this_min or means[i] > this_max:
+    if (means[i] < this_min or means[i] > this_max) and seq not in compats:
       return(None)
   this_range = np.max(means) - np.min(means)
-  if np.abs(this_range) > m_range:
+  if (np.abs(this_range) > m_range) and seq not in compats:
     return(None)
   # all tests are passed at this point
   if take_mean:
@@ -29,11 +29,17 @@ def munge_one_line(l, mins, maxes, m_range, take_mean):
     means = [str(q) for q in means]
     return(seq + ',' + ','.join(means) + '\n')
 
-def main(fn_in, fn_out, fn_fail, mins, maxes, m_range, take_mean, outnames):
+def main(fn_in, fn_out, fn_fail, mins, maxes, m_range, take_mean, outnames, fn_compat):
+  compats = []
+  if fn_compat is not None:
+    with open(fn_compat, 'r') as fc:
+      for l in fc:
+        compats.append(l.strip().split(',')[1])
+
   with open(fn_in, 'r') as fi, open(fn_out, 'w') as fo, open(fn_fail, 'w') as fx:
     fo.write('Seq,' + ','.join(outnames) + '\n')
     for l in fi:
-        munged_l = munge_one_line(l, mins, maxes, m_range, take_mean)
+        munged_l = munge_one_line(l, mins, maxes, m_range, take_mean, compats)
         if munged_l == None:
           fx.write(l)
         else:
@@ -45,6 +51,13 @@ if __name__ == '__main__':
   fn_in = os.path.expanduser(config.get('Files','file_in'))
   fn_out = os.path.expanduser(config.get('Files','file_out'))
   fn_fail = os.path.expanduser(config.get('Files','file_fail'))
+
+  try:
+    fn_compat = config.get('Files','file_compat')
+    fn_compat = os.path.expanduser(fn_compat)
+  except KeyError:
+    fn_compat = None
+
   take_mean = config.get('Params','mean_reps') == 'True'
   m_range = float(config.get('Params','replicate_diff'))
   mins = [float(q) for q in config.get('Params','min').strip().split(',')]
@@ -55,4 +68,4 @@ if __name__ == '__main__':
   if take_mean:
     assert(len(outnames) == 1)
 
-  main(fn_in, fn_out, fn_fail, mins, maxes, m_range, take_mean, outnames)
+  main(fn_in, fn_out, fn_fail, mins, maxes, m_range, take_mean, outnames, fn_compat)
