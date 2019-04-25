@@ -1,5 +1,0 @@
-Promoter,Objective,Filter,Function,Strategy,Threshold,ID
-GPD,Strength,FALSE,Mean-sd,Gradient to threshold,0.8,10
-ZEV,Induced strength,TRUE,Mean,Gradient to threshold,1.6,19
-ZEV,Induced strength,TRUE,Mean-sd,Gradient to threshold,1.6,20
-ZEV,Induced strength,FALSE,Mean-sd,Gradient to threshold,1.75,21
