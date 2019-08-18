@@ -22,13 +22,13 @@ get.seq = function(x.m, n.bases) {
 }
 
 # double mutagenesis analysis of whole 0_0
-fn_l2_mat = '0_0/0_GPD_strong_nofilter_mean_screen_0.45_selected_0_double_l2.csv'
-fn_l2 = paste0(png.head, '6A_double.png', collapse = '')
-png(filename = fn_l2, units = 'cm', width = 6.6, height = 6.6, res = 600)
-x = as.matrix(read.csv(fn_l2_mat, header = FALSE))
-heatmap(x, Rowv = NA, Colv = NA, labRow = NA, labCol = NA,
-        scale = 'none', col = gray.colors(256, start = 0, end = 1))
-dev.off()
+#fn_l2_mat = '0_0/0_GPD_strong_nofilter_mean_screen_0.45_selected_0_double_l2.csv'
+#fn_l2 = paste0(png.head, '6A_double.png', collapse = '')
+#png(filename = fn_l2, units = 'cm', width = 6.6, height = 6.6, res = 600)
+#x = as.matrix(read.csv(fn_l2_mat, header = FALSE))
+#heatmap(x, Rowv = NA, Colv = NA, labRow = NA, labCol = NA,
+#        scale = 'none', col = gray.colors(256, start = 0, end = 1))
+#dev.off()
 
 #x = fread('char_mut_0_0.csv', header = FALSE)
 x = fread('0_0/0_GPD_strong_nofilter_mean_screen_0.45_selected_0_single.csv')
@@ -37,10 +37,10 @@ x$pos = 1:nrow(x)
 # single mutagenesis analysis of whole 0_0
 x.m = melt(x, measure.vars = c('A','C','G','T'))
 png(filename = paste0(png.head, '6A_single.png', collapse = ''),
-    units = 'cm', width = 7.7, height = 2.5, res = 600)
+    units = 'cm', width = 8, height = 3.5, res = 600)
 p = ggplot(data = x.m, aes(x = pos, y = value, color = variable)) + geom_line(lwd = 0.2, alpha = 0.7) + 
   # fix alpha washing out legend, cf. https://stackoverflow.com/questions/5290003/how-to-set-legend-alpha-with-ggplot2
-  guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+  guides(colour = guide_legend(override.aes = list(alpha = 1, size = 1))) +
   theme_bw() +
   geom_hline(yintercept = 0, lty = 2) +
   theme(axis.text = element_text(size=6), axis.title = element_text(size=8, face='bold'),
@@ -56,10 +56,10 @@ dev.off()
 x.m = melt(x[26:50,], measure.vars = c('A','C','G','T'))
 
 png(filename = paste0(png.head, '6A_single_Gcn4p.png', collapse = ''),
-    units = 'cm', width = 7.7, height = 2.5, res = 600)
-p = ggplot(data = x.m, aes(x = pos, y = value, color = variable)) + geom_line(lwd = 0.2, alpha = 0.7) + 
+    units = 'cm', width = 8, height = 3.5, res = 600)
+p = ggplot(data = x.m, aes(x = pos, y = value, color = variable)) + geom_line(lwd = 0.5, alpha = 0.7) + 
   # fix alpha washing out legend, cf. https://stackoverflow.com/questions/5290003/how-to-set-legend-alpha-with-ggplot2
-  guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+  guides(colour = guide_legend(override.aes = list(alpha = 1, size = 1))) +
   theme_bw() +
   annotate('text', 38:44, rep(0.005, 7), label = strsplit('TGASTCA','')[[1]], size = 1.6) + 
   geom_hline(yintercept = 0, lty = 2) +

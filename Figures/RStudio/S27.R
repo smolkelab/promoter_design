@@ -1,51 +1,56 @@
-# Get the read tables for MiSeq and Nextseq, for both GPD and ZEV
-# Get the number of reads for each sequence; join tables as in original analysis;
-# plot # reads in both against each other.
-setwd('D:/Promoter Design Data/Read Table Comparison/')
 library(data.table)
+library(ggplot2)
+setwd('D:/Promoter Design Data/Read Group Fates/')
 
-miseq.GPD = 'filtered_read_table_miseq_GPD.txt'
-nextseq.GPD = 'final_merged_reads_nextseq_GPD.csv'
-miseq.ZEV = 'filtered_read_table_miseq_ZEV.txt'
-nextseq.ZEV = 'final_merged_reads_nextseq_ZEV.csv'
-key.len = 35
+max.pre = 20
 
-process.one.pair = function(miseq, nextseq, key.len) {
-  miseq.table = fread(miseq); miseq.table$V2 = NULL # drop groups
-  nextseq.table = fread(nextseq, header = TRUE); nextseq.table$V1 = NULL
-  # get keys in miseq (first 35 bp); drop repeated rows
-  miseq.table$keys = sapply(miseq.table$V1, function(x) substr(x, 1, key.len))
-  dups = table(miseq.table$keys); dups = dups[dups > 1]; dups = names(dups)
-  miseq.table = miseq.table[!miseq.table$keys %in% dups,]
-  # drop seqs
-  miseq.table$V1 = NULL; seqs = miseq.table$keys; miseq.table$keys = NULL
-  read.cts = apply(miseq.table, 1, sum)
-  miseq.table = data.table(seqs = seqs, miseq.cts = read.cts)  
-  
-  nextseq.table$keys = sapply(nextseq.table$Seq, function(x) substr(x, 1, key.len))
-  dups = table(nextseq.table$keys); dups = dups[dups > 1]; dups = names(dups)
-  nextseq.table = nextseq.table[!nextseq.table$keys %in% dups,]
-  nextseq.table$Seq = NULL; seqs = nextseq.table$keys; nextseq.table$keys = NULL
-  read.cts = apply(nextseq.table, 1, sum)
-  nextseq.table = data.table(seqs = seqs, nextseq.cts = read.cts)
-  setkey(miseq.table, seqs); setkey(nextseq.table, seqs)
-  ans = miseq.table[nextseq.table, on = 'seqs', nomatch = 0]
-  return(ans)
+process.fates = function(fn, max.pre) {
+x = fread(fn)
+# Possible fates: Singleton, N, Ambiguous, Aligned - N never appears though
+fates = vector(mode = 'character', length = nrow(x))
+for(i in 1:nrow(x)) {
+  pre = x$Pre[i]; ambig = x$Ambig[i]; n = x$N[i]; aln = x$Aln[i]
+  if(pre == 1) { tmp = 'Singleton' }
+  if(pre == ambig) { tmp = 'Ambiguous' }
+  if(pre == n) { tmp = 'N' }
+  if(pre == aln) { tmp = 'Aligned' }
+  fates[i] = tmp
+}
+x$Fate = fates
+x$Pre.adj = sapply(x$Pre, function(x) min(x,max.pre))
+
+fate.mat = matrix(nrow = max.pre, ncol = 4)
+colnames(fate.mat) = c('Singleton', 'N', 'Ambiguous', 'Aligned')
+for(i in 1:nrow(fate.mat)) {
+  for(j in 1:ncol(fate.mat)) {
+    fate.mat[i,j] = sum(x$Pre.adj == i & x$Fate == colnames(fate.mat)[j])
+}}
+return(t(fate.mat))
 }
 
-dat.GPD = process.one.pair(miseq.GPD, nextseq.GPD, key.len)
-dat.ZEV = process.one.pair(miseq.ZEV, nextseq.ZEV, key.len)
+fates.mat = lapply(dir(), process.fates, max.pre = max.pre)
+names(fates.mat) = c('GPD', 'ZEV')
+fates.mat[[1]] = melt(fates.mat[[1]]); fates.mat[[1]]$Promoter = 'GPD'
+fates.mat[[2]] = melt(fates.mat[[2]]); fates.mat[[2]]$Promoter = 'ZEV'
+fates = rbind(fates.mat[[1]], fates.mat[[2]])
 
-png(filename = 'D:/Promoter Design Data/Figures/PNGs/S27.png',
-    units = 'in', res = 144, width = 7, height = 5.25)
-par(mfrow = c(2,3))
-hist(log10(dat.GPD$miseq.cts), breaks = 100, main = '', xlab = 'Read Counts (log10) - GPD MiSeq', xlim = c(0,4))
-hist(log10(dat.GPD$nextseq.cts), breaks = 100, main = '', xlab = 'Read Counts (log10) - GPD NextSeq', xlim = c(0,4))
-plot(log10(dat.GPD$miseq.cts), log10(dat.GPD$nextseq.cts), pch = '.', main = '', xlab = 'Read Counts (log10) - GPD Miseq', ylab = 'Read Counts (log10) - GPD Nextseq')
-hist(log10(dat.ZEV$miseq.cts), breaks = 100, main = '', xlab = 'Read Counts (log10) - ZEV MiSeq', xlim = c(0,4))
-hist(log10(dat.ZEV$nextseq.cts), breaks = 100, main = '', xlab = 'Read Counts (log10) - ZEV NextSeq', xlim = c(0,4))
-plot(log10(dat.ZEV$miseq.cts), log10(dat.ZEV$nextseq.cts), pch = '.', main = '', xlab = 'Read Counts (log10) - ZEV Miseq', ylab = 'Read Counts (log10) - ZEV Nextseq')
+png(filename = 'D:/Promoter Design Data/Figures/Final PNGs/S27.png',
+    units = 'cm', res = 600, width = 16, height = 8)
+
+p = ggplot(data = fates, aes(x = Var2, fill = Var1, weight= value)) + geom_bar() + facet_grid(.~Promoter) + 
+  theme_bw() + 
+  labs(x = 'Cluster Size', y = 'Number of Clusters', fill = 'Read Fate') + 
+  theme(plot.title = element_text(hjust = 0.4, size = 12, face='bold')) +
+  theme(axis.text = element_text(size=10), axis.title = element_text(size=12, face='bold'),
+        legend.text = element_text(size=10), legend.title = element_text(size=12, face='bold'),
+        legend.key.size = unit(0.5,'cm')) 
+print(p)
 dev.off()
+
+
+
+
+
 
 
 

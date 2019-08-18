@@ -13,7 +13,7 @@ x = x[x$Experiment != 'None',]
 write.csv(x, file = 'final_validation_FACS-Seq_means_just_designs.csv')
 
 setwd('D:/Promoter Design Data/Code')
-# identify control sequences (design sets are generated using Python code in the 'facs-seq' Github repo)
+# identify control sequences
 source('Select_control_seqs.R')
 
 # select sequences for single-sequence validation

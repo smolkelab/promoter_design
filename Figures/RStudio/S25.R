@@ -1,22 +1,41 @@
-library(data.table)
-setwd('D:/Promoter Design Data/Sequence Alignment Scores/')
-fns = dir()
+source('D:/Promoter Design Data/Code/Bin edge calculation.R')
 
-fn.ord = c(1,3,2,4)
-plot.names = c('Forward alignment scores',# - pGPD',
-               'Reverse alignment scores',#' - pGPD',
-               'Forward alignment scores',#' - pZEV',
-               'Reverse alignment scores')#' - pZEV')
+png('D:/Promoter Design Data/Figures/PNGs/S25.png',
+    units = 'in', width = 6, height = 4, res = 600)
+### Generate a final plot ###
+par(mfrow = c(1,3), cex.lab = 0.75, cex.main = 0.75)
 
-png(filename = 'D:/Promoter Design Data/Figures/PNGs/S25.png', 
-    units = 'in', res = 144, width = 6, height = 6)
+### Plot pZEV ###
+plot(from_rats, to_rats, pch = '.', xlab = 'Promoter Activity (log10) - As Measured', 
+     ylab = 'Promoter Activity (log10) - Reference Equivalent',
+     xlim = c(-2, 1), ylim = c(-0.5, 2.0))
+abline(lm(to_rats ~ from_rats), lty = 2)
+abline(v = pzev.orig, lty = 2)
+abline(h = pzev.cal, lty = 2)
 
-par(mfrow = c(2,2))
-for(i in 1:length(fns)) {
-  x = fread(fns[fn.ord[i]])$V1
-  hist(x, main = '', xlab = plot.names[i])
-  abline(v=192, lty = 2, lwd = 2, col = 'red')
-}
+### Plot uninduced ###
+
+plot(output_0[[1]], rats_0, xlab = 'Promoter Activity (log10) - As Measured', 
+     ylab = 'Promoter Activity (log10) - Reference Equivalent', pch = '.',
+     xlim = c(-4, 1), ylim = c(-4, 3))
+for(i in 2:length(output_0)) { points(output_0[[i]], rats_0, col = i, pch = '.') }
+abline(lm(Uninduced_Mean ~ orig, data = final.frame), lty = 2)
+for(i in 1:nrow(final.frame)) { abline(v = final.frame$orig[i], lty = 2) }
+for(i in 1:nrow(final.frame)) { abline(h = final.frame$Uninduced_Mean[i], lty = 2) }
+
+### Plot induced ###
+plot(output_1[[1]], rats_1, xlab = 'Promoter Activity (log10) - As Measured', 
+     ylab = 'Promoter Activity (log10) - Reference Equivalent', pch = '.',
+     xlim = c(-4, 1), ylim = c(-4, 3))
+for(i in 2:length(output_1)) { points(output_1[[i]], rats_1, col = i, pch = '.') }
+abline(lm(Induced_Mean ~ orig, data = final.frame), lty = 2)
+for(i in 1:nrow(final.frame)) { abline(v = final.frame$orig[i], lty = 2) }
+for(i in 1:nrow(final.frame)) { abline(h = final.frame$Induced_Mean[i], lty = 2) }
 
 dev.off()
-
+# Final output: ZEV
+print(pzev.cal)
+# Final output: Validation Uninduced
+print(final.frame$Uninduced_Mean)
+# Final output: Validation Induced
+print(final.frame$Induced_Mean)
