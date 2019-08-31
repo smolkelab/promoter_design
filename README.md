@@ -1,5 +1,5 @@
 # Promoter Design
-Code and analysis scripts developed for "Model-driven generation of artificial yeast promoters" (Benjamin J. Kotopka and Christina D. Smolke; in preparation).
+Code and analysis scripts developed for "Model-driven generation of artificial yeast promoters" (Benjamin J. Kotopka and Christina D. Smolke; in preparation). Preprint available on bioRxiv: https://www.biorxiv.org/content/10.1101/748616v1 .
 
 ## Installation/Setup
 Python scripts were run using Python 2.7 on Ubuntu 16.04 (xenial); R scripts (in "Figures/RStudio" and "Code") were run within RStudio 1.1.463, using R 3.5.1, on Windows 10. For Python requirements see 'requirements.txt' in the main directory; external R dependencies are data.table, ggplot2, MASS, viridis, UpSetR, gplots, and beanplot. tensorflow-gpu highly recommended for model training.
