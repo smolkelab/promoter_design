@@ -41,7 +41,7 @@ p = ggplot(dat.mer.use, aes(x = Strength.A, y = Strength.B, color = Density)) +
         legend.text = element_text(size=6), legend.title = element_text(size=8, face='bold'),
         legend.key.size = unit(0.2,'cm')) +
   labs(x = 'pGPD Promoter Activity (Replicate A) (log10)', y='pGPD Promoter Activity (Replicate B) (log10)',
-       color = 'Cell Counts') +
+       color = 'Density') +
   geom_abline(slope = 1, intercept = c(-0.2, 0.2), lwd = 0.2, lty = 2) +
   scale_color_viridis()
 print(p)

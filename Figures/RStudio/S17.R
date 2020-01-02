@@ -23,7 +23,7 @@ png(filename = 'D:/Promoter Design Data/Figures/Final PNGs/S17.png',
 
 p = ggplot(dat.mer.use, aes(Experiment, 10^AR, color = Experiment)) + #, shape = Offscale)) + 
   
-  geom_boxplot(data = dat.mer.use, outlier.size = 0, coef = 0, outlier.shape = NA) + 
+  geom_boxplot(data = dat.mer.use, outlier.size = 0, outlier.shape = NA) + # coef = 0, 
   geom_jitter(data = dat.mer.use, width = 0.1, height = 0, size = 0.5) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5, size = 8, face='bold')) +

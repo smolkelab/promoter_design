@@ -25,7 +25,7 @@ png(filename = 'D:/Promoter Design Data/Figures/Final PNGs/S15.png',
 
 p = ggplot(dat.mer.use, aes(Experiment, 10^Means_Avg, color = Experiment)) + #, shape = Offscale)) + 
   
-  geom_boxplot(data = dat.mer.use, outlier.size = 0, coef = 0, outlier.shape = NA) + 
+  geom_boxplot(data = dat.mer.use, outlier.size = 0, outlier.shape = NA) + # coef = 0, 
   geom_jitter(data = dat.mer.use, width = 0.1, height = 0, size = 0.5) +
   geom_hline(yintercept = 10^offscale.val, lty = 2) +
   theme_bw() + 
@@ -40,13 +40,13 @@ dev.off()
 fix.m = function(x) {10^x[!is.na(x)]}
 #NC/S
 wilcox.test(fix.m(dat.mer.use$Means_Avg[dat.mer.use$Experiment == 'NC\nNP\nS']), 
-            fix.m(dat.mer.use$Means_Avg[dat.mer.use$Experiment == 'NC\nP\nS']), 'less') # 5.9e-6
+            fix.m(dat.mer.use$Means_Avg[dat.mer.use$Experiment == 'NC\nP\nS']), 'two.sided') # 1.183e-05
 #NC/E
 wilcox.test(fix.m(dat.mer.use$Means_Avg[dat.mer.use$Experiment == 'NC\nNP\nE']), 
-            fix.m(dat.mer.use$Means_Avg[dat.mer.use$Experiment == 'NC\nP\nE']), 'less') # 0.003
+            fix.m(dat.mer.use$Means_Avg[dat.mer.use$Experiment == 'NC\nP\nE']), 'two.sided') # 0.006
 #C/G
 wilcox.test(fix.m(dat.mer.use$Means_Avg[dat.mer.use$Experiment == 'C\nNP\nG']), 
-            fix.m(dat.mer.use$Means_Avg[dat.mer.use$Experiment == 'C\nP\nG']), 'less') # 7e-14
+            fix.m(dat.mer.use$Means_Avg[dat.mer.use$Experiment == 'C\nP\nG']), 'two.sided') # 1.415e-13
 
 
 

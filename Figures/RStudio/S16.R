@@ -27,7 +27,7 @@ png(filename = 'D:/Promoter Design Data/Figures/Final PNGs/S16.png',
 
 p = ggplot(dat.mer.use, aes(Experiment, 10^Means_B, color = Experiment)) + #, shape = Offscale)) + 
   
-  geom_boxplot(data = dat.mer.use, outlier.size = 0, coef = 0, outlier.shape = NA) + 
+  geom_boxplot(data = dat.mer.use, outlier.size = 0, outlier.shape = NA) + # coef = 0, 
   geom_jitter(data = dat.mer.use, width = 0.1, height = 0, size = 0.5) +
   geom_hline(yintercept = 10^offscale.val, lty = 2) +
   theme_bw() + 
@@ -42,24 +42,24 @@ dev.off()
 fix.m = function(x) {10^x[!is.na(x)]}
 #NC/S
 wilcox.test(fix.m(dat.mer.use$Means_B[dat.mer.use$Experiment == 'NC\nNP\nS']), 
-            fix.m(dat.mer.use$Means_B[dat.mer.use$Experiment == 'NC\nP\nS']), 'less') # 2.6e-14
+            fix.m(dat.mer.use$Means_B[dat.mer.use$Experiment == 'NC\nP\nS']), 'two.sided')$p.value # 5.3e-14
 #NC/E
 wilcox.test(fix.m(dat.mer.use$Means_B[dat.mer.use$Experiment == 'NC\nNP\nE']), 
-            fix.m(dat.mer.use$Means_B[dat.mer.use$Experiment == 'NC\nP\nE']), 'less') # 0.26
+            fix.m(dat.mer.use$Means_B[dat.mer.use$Experiment == 'NC\nP\nE']), 'less')$p.value # 0.26
 
 median(fix.m(dat.mer.use$Means_B[dat.mer.use$Experiment == 'NC\nP\nE'])) # with extrapolation penalty
 median(fix.m(dat.mer.use$Means_B[dat.mer.use$Experiment == 'NC\nNP\nE'])) # without
 
 #C/E
 wilcox.test(fix.m(dat.mer.use$Means_B[dat.mer.use$Experiment == 'C\nNP\nE']), 
-            fix.m(dat.mer.use$Means_B[dat.mer.use$Experiment == 'C\nP\nE']), 'less') # 0.0009
+            fix.m(dat.mer.use$Means_B[dat.mer.use$Experiment == 'C\nP\nE']), 'two.sided')$p.value # 0.0017
 
 #NC/G
 wilcox.test(fix.m(dat.mer.use$Means_B[dat.mer.use$Experiment == 'NC\nNP\nG']), 
-            fix.m(dat.mer.use$Means_B[dat.mer.use$Experiment == 'NC\nP\nG']), 'less') # 1.08e-6
+            fix.m(dat.mer.use$Means_B[dat.mer.use$Experiment == 'NC\nP\nG']), 'two.sided')$p.value # 2.17e-6
 
 #C/G
 wilcox.test(fix.m(dat.mer.use$Means_B[dat.mer.use$Experiment == 'C\nNP\nG']), 
-            fix.m(dat.mer.use$Means_B[dat.mer.use$Experiment == 'C\nP\nG']), 'less') # 0.0012
+            fix.m(dat.mer.use$Means_B[dat.mer.use$Experiment == 'C\nP\nG']), 'two.sided')$p.value # 0.0025
 
 

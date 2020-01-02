@@ -79,27 +79,27 @@ pval.mat = matrix(nrow = length(gps), ncol = length(gps))
 rownames(pval.mat) = gps; colnames(pval.mat) = gps
 for(i in 1:nrow(pval.mat)) { for(j in 1:ncol(pval.mat)) {
   #p = (t.test(x$Score.adj[x$Key == gps[i]], x$Score.adj[x$Key == gps[j]], alternative='less'))$p.value
-  p = (wilcox.test(x$Score.adj[x$Key == gps[i]], x$Score.adj[x$Key == gps[j]], alternative='less'))$p.value
+  p = (wilcox.test(x$Score.adj[x$Key == gps[i]], x$Score.adj[x$Key == gps[j]], alternative='two.sided'))$p.value
   pval.mat[i,j] = p #min(-log10(p), 10)
 }}
 
 # pGPD: control vs. screen
-apply(pval.mat[19:20,1:6],1,max) # 8.15e-03
+max(apply(pval.mat[19:20,1:6],1,max)) # 0.01629639
 # control vs. evolution
-apply(pval.mat[21:24,1:6],1,max) # 2.52e-06
+max(apply(pval.mat[21:24,1:6],1,max)) # 5.047073e-06
 # gradient vs. control
-apply(pval.mat[1:6,25:29],1,max) # 1.37e-106
+max(apply(pval.mat[1:6,25:29],1,max)) # 4.083107e-106
 
 #pZEV: control vs. screen
-apply(pval.mat[30:31,7:18],1,max) # ***0.15 :(
+max(apply(pval.mat[30:31,7:18],1,max)) # 0.2912263
 # control vs. evolution
-apply(pval.mat[32:35,7:18],1,max) # 3.07e-03
+max(apply(pval.mat[32:35,7:18],1,max)) # 0.006133204
 # gradient vs. control
-apply(pval.mat[7:18, 36:40],1,max) # 5.46e-77
+max(apply(pval.mat[7:18, 36:40],1,max)) # 1.151119e-73
 
 #pZEV-AR: control vs. screen
-apply(pval.mat[41:42,7:18],1,max) # 0.030
+max(apply(pval.mat[41:42,7:18],1,max)) # 0.06252029
 # control vs. evolution
-apply(pval.mat[43:46,7:18],1,max) # 3.03e-04
+max(apply(pval.mat[43:46,7:18],1,max)) # 0.0006066611
 # gradient vs. control
-apply(pval.mat[7:18, 47:51],1,max) # 3.43e-50
+max(apply(pval.mat[7:18, 47:51],1,max)) # 6.860136e-50
