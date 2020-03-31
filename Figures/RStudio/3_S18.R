@@ -57,19 +57,23 @@ dat.mer.use$F6_group_text = group_text_key[dat.mer.use$F6_group]
 dat.mer.use$F6_group_text = factor(dat.mer.use$F6_group_text, 
                                    levels = levels(factor(dat.mer.use$F6_group_text))[c(6,5,1:4)] )
 
-png(filename = 'D:/Promoter Design Data/Figures/PNGs/3A.png',
-    units = 'cm', width = 9, height = 5, res = 600)
+stat_box_data = function(y) { return(data.frame(y = max(y) + 3, label = length(y))) }
 
-p = ggplot(dat.mer.use, aes(F6_group_text, 10^Means_Avg, color = F6_group_text)) + #, shape = Offscale)) + 
+png(filename = 'D:/Promoter Design Data/Figures/PNGs/3A.png',
+    units = 'cm', width = 8.8, height = 5, res = 600)
+
+p = ggplot(dat.mer.use, aes(F6_group_text, 10^Means_Avg)) + #, color = F6_group_text)) + #, shape = Offscale)) + 
   
   geom_boxplot(data = dat.mer.use, outlier.size = 0, outlier.shape = NA) + # coef = 0, 
   geom_jitter(data = dat.mer.use, width = 0.1, height = 0, size = 0.5) +
   #geom_hline(yintercept = offscale.val, lty = 2) +
+  # leave numbers off in final version so they can be added in Illustrator
+  #stat_summary(fun.data = stat_box_data, geom = "text", hjust = 0.5, vjust = 0.9, size=3) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5, size = 8, face='bold')) +
   theme(axis.text = element_text(size=6), axis.title = element_text(size=8, face='bold'),
         legend.title = element_blank(), axis.title.x=element_blank(), legend.position = 'none') +
-  labs(y='Promoter activity \npGPD designs') + ylim(c(0,18)) + # ylim(c(0,27)) +
+  labs(y='Promoter activity \npGPD designs') + ylim(c(0,20)) + # ylim(c(0,27)) +
   theme(axis.text.x = element_text(angle = -45, hjust = 0))
 print(p)
 dev.off()
@@ -116,18 +120,22 @@ dat.mer.use$F6_group_text = group_text_key[dat.mer.use$F6_group]
 dat.mer.use$F6_group_text = factor(dat.mer.use$F6_group_text, 
                                    levels = levels(factor(dat.mer.use$F6_group_text))[c(7,6,1:5)] )
 
+stat_box_data = function(y) { return(data.frame(y = max(y) + 15, label = length(y))) }
+
 png(filename = 'D:/Promoter Design Data/Figures/PNGs/3B.png',
-    units = 'cm', width = 9, height = 5, res = 600)
-p = ggplot(dat.mer.use, aes(F6_group_text, 10^Means_B, color = F6_group_text)) + 
+    units = 'cm', width = 8.8, height = 5, res = 600)
+p = ggplot(dat.mer.use, aes(F6_group_text, 10^Means_B)) + #, color = F6_group_text)) + 
   geom_boxplot(outlier.size = 0, outlier.shape = NA) + # coef = 0, 
   geom_jitter(width = 0.1, height = 0, size = 0.5) +
   #geom_hline(yintercept = offscale.val, lty = 2) +
+  # leave numbers off in final version so they can be added in Illustrator
+  #stat_summary(fun.data = stat_box_data, geom = "text", hjust = 0.5, vjust = 0.9, size=3) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5, size = 8, face='bold')) +
   theme(axis.text = element_text(size=6), axis.title = element_text(size=8, face='bold'),
         legend.title = element_blank(), axis.title.x=element_blank(), legend.position = 'none') + 
   theme(axis.text.x = element_text(angle = -45, hjust = 0)) +
-  labs(y='Induced promoter activity \npZEV-induced designs') + ylim(c(0,90)) # + ylim(c(0,140))
+  labs(y='Induced promoter activity \npZEV-induced designs') + ylim(c(0,100)) # + ylim(c(0,140))
 print(p)
 dev.off()
 
@@ -156,7 +164,6 @@ wilcox.test(ev, eg, 'two.sided')$p.value # 0.04484599
 wilcox.test(gr, gg, 'two.sided')$p.value # 0.01216047
 wilcox.test(gr, g_star, 'two.sided')$p.value # 1.697595e-05
 
-
 # 3C: pZEV-AR
 dat.mer.use = fread('D:/Promoter Design Data/FACS-Seq/final_validation_FACS-Seq_means_just_designs_corrected.csv')
 dat.mer.use = dat.mer.use[dat.mer.use$Experiment %in% zev.ar.ex,]
@@ -168,12 +175,16 @@ dat.mer.use$F6_group_text = group_text_key[dat.mer.use$F6_group_AR]
 dat.mer.use$F6_group_text = factor(dat.mer.use$F6_group_text, 
                                    levels = levels(factor(dat.mer.use$F6_group_text))[c(7,6,1:5)] )
 
+stat_box_data = function(y) { return(data.frame(y = min(max(y) + 40, 200), label = length(y))) }
+
 png(filename = 'D:/Promoter Design Data/Figures/PNGs/3C.png',
-    units = 'cm', width = 9, height = 5, res = 600)
-p = ggplot(dat.mer.use, aes(F6_group_text, 10^AR, color = F6_group_text)) + 
+    units = 'cm', width = 8.8, height = 5, res = 600)
+p = ggplot(dat.mer.use, aes(F6_group_text, 10^AR)) + #, color = F6_group_text)) + 
   geom_boxplot(outlier.size = 0, outlier.shape = NA) + # coef = 0, 
   geom_jitter(width = 0.1, height = 0, size = 0.5) +
   theme_bw() + 
+  # leave numbers off in final version so they can be added in Illustrator
+  #stat_summary(fun.data = stat_box_data, geom = "text", hjust = 0.5, vjust = 0.9, size=3) +
   theme(plot.title = element_text(hjust = 0.5, size = 8, face='bold')) +
   theme(axis.text = element_text(size=6), axis.title = element_text(size=8, face='bold'),
         legend.title = element_blank(), axis.title.x=element_blank(), legend.position = 'none') +
@@ -216,15 +227,39 @@ over.thresh(gr, 100)
 over.thresh(gg, 100)
 over.thresh(g_star, 100)
 
-# 4D: off-scale issue for pZEV designs
+# S18: off-scale issue for pZEV designs
 
 dat.mer.use$ismin = dat.mer.use$Means_A == min(dat.mer.use$Means_A)
 dat.mer.use$`Uninduced Strength` = 'Measured'
 dat.mer.use$`Uninduced Strength`[dat.mer.use$ismin] = 'Lower Bound'
+stat_box_data = function(y) { return(data.frame(y = max(y), label = length(y))) }
+
+# df for geom_text to add bar counts
+df.small = data.frame(F6_group_text = dat.mer.use$F6_group_text,
+                      us=dat.mer.use$`Uninduced Strength`, val = 1)
+df.lab = melt(dcast(df.small, us ~ F6_group_text, value.var = 'val'))
+setnames(df.lab, c('us', 'variable'), c('Uninduced Strength', 'F6_group_text'))
+df.lab$pos = 0
+is.m = df.lab$`Uninduced Strength` == 'Measured'
+df.lab$pos[is.m] = df.lab$value[is.m]/2
+isnt.m = which(!is.m)
+for(i in 1:length(isnt.m)) {
+  idx = which(df.lab$F6_group_text == df.lab$F6_group_text[isnt.m[i]])
+  lb = df.lab$value[idx[1]]
+  me = df.lab$value[idx[2]]
+  ans = me + lb/2
+  df.lab$pos[isnt.m[i]] = ans
+}
+
+# Source Data
+dat.source = dat.mer.use[order(dat.mer.use$F6_group_text, dat.mer.use$`Uninduced Strength`),]
+dat.source = data.frame(Seqs=dat.source$Seqs, `Design Type`=dat.source$F6_group_text, Measured=dat.source$`Uninduced Strength`)
+write.csv(dat.source, 'D:/Promoter Design Data/Source Data/S18.csv', quote = FALSE, row.names = FALSE)
 
 png(filename = 'D:/Promoter Design Data/Figures/PNGs/S18.png',
     units = 'cm', width = 9.5, height = 6, res = 600)
 p = ggplot(dat.mer.use, aes(x = F6_group_text, fill = `Uninduced Strength`)) + geom_bar() + theme_bw() +
+  geom_text(data=df.lab,aes(x=F6_group_text,y=pos,label=value),vjust=0.5) +
   theme(plot.title = element_text(hjust = 0.5, size = 8, face='bold')) +
   theme(axis.text = element_text(size=6), axis.title = element_text(size=8, face='bold'),
         legend.text = element_text(size=6), legend.title = element_text(size=8, face='bold'),

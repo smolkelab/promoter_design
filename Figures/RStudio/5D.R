@@ -24,7 +24,6 @@ set.max = function(x) {
   return(x)
 }
 
-
 x = lapply(fns, function(x) as.matrix(fread(x))[59:98,] )
 mins = lapply(x, function(x) apply(x,1,min) )
 calls = lapply(x, function(x) DNA[apply(x, 1, function(y) which(y == 0))])
@@ -97,13 +96,20 @@ box.df.nozero$dummy[box.df.nozero$lens == '12+'] = 'e'
 
 stat_box_data = function(y) { return(data.frame(y = min(y) - 0.005, label = length(y))) }
 
+# Source Data
+dat.source = box.df.nozero[order(box.df.nozero$lens),]
+dat.source = rbind(dat.source, box.zero)
+dat.source$dummy = NULL
+write.csv(dat.source, 'D:/Promoter Design Data/Source Data/5D_raw.csv', quote = FALSE, row.names = FALSE)
+
 png(filename = paste0(png.head, '5D.png', collapse = ''),
-    units = 'cm', width = 9, height = 6, res = 600)
-g = ggplot(data = box.df.nozero, aes(x = lens, y = meds, color = dummy)) + 
+    units = 'cm', width = 8, height = 6, res = 600)
+g = ggplot(data = box.df.nozero, aes(x = lens, y = meds)) + #, color = dummy)) + 
   geom_boxplot(outlier.shape = NA) + 
-  stat_summary(fun.data = stat_box_data, geom = "text", hjust = 0.5, vjust = 0.9, size=3) +
+  # hide numbers in final version; add to Illustrator to make editable
+  #stat_summary(fun.data = stat_box_data, geom = "text", hjust = 0.5, vjust = 0.9, size=3) +
   geom_jitter(width = 0.2, size = 0.5) +
-  geom_violin(data = box.zero, aes(fill = lens), alpha = 0.5) +
+  geom_violin(data = box.zero, aes(fill = lens), alpha = 0.5, fill = 'black') +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5, size = 8, face='bold')) +
   theme(axis.text = element_text(size=6), axis.title = element_text(size=8, face='bold'),

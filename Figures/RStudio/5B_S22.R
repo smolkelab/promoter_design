@@ -11,12 +11,13 @@ df$Seqs = substr(df$Seqs, 26, 340)
 # 13 bp = 0.27 cm
 
 # whole sequence
-png(filename = paste0(png.head, 'S22A.png', collapse = ''),
-    units = 'cm', width = 21, height = 3.5, res = 600)
-ggplot() + geom_logo( df$Seqs ) + theme_logo() + ylim(0,2) + theme(axis.title.x=element_blank(),
-                                                                   axis.text.x=element_blank(),
-                                                                   axis.ticks.x=element_blank())
-dev.off()
+#png(filename = paste0(png.head, 'S22A.png', collapse = ''),
+#    units = 'cm', width = 21, height = 3.5, res = 600)
+#ggplot() + geom_logo( df$Seqs ) + theme_logo() + ylim(0,2) + theme(axis.title.x=element_blank(),
+#                                                                   axis.text.x=element_blank(),
+#                                                                   axis.ticks.x=element_blank())
+#dev.off()
+
 
 # first GCR1: 15 bp
 png(filename = paste0(png.head, '5B_pGPD_LOGO_GCR1-1.png', collapse = ''),
@@ -53,13 +54,13 @@ dev.off()
 
 #### ZEV-I
 
-# whole sequence
+# 3' context
 png.head = 'D:/Promoter Design Data/Figures/PNGs/'
 df = fread('D:/Promoter Design Data/Designs/14_ZEV_induced_nofilter_1sd_evolve-thresh_1.6_selected.txt')
 df$Seqs = substr(df$Seqs, 59, 307)
-png(filename = paste0(png.head, 'S22B.png', collapse = ''),
-    units = 'cm', width = 21, height = 3.5, res = 600)
-ggplot() + geom_logo( df$Seqs ) + theme_logo() + ylim(0,2) + theme(axis.title.x=element_blank(),
+png(filename = paste0(png.head, 'S22A.png', collapse = ''),
+    units = 'cm', width = 10, height = 3.5, res = 600)
+ggplot() + geom_logo( substr(df$Seqs, 237, 249) ) + theme_logo() + ylim(0,2) + theme(axis.title.x=element_blank(),
                                                                    axis.text.x=element_blank(),
                                                                    axis.ticks.x=element_blank())
 dev.off()
@@ -67,7 +68,7 @@ dev.off()
 ### ZEV-I upstream TATA
 df = fread('D:/Promoter Design Data/Designs/14_ZEV_induced_nofilter_1sd_evolve-thresh_1.6_selected.txt')
 df$Seqs = substr(df$Seqs, 59, 98)
-png(filename = paste0(png.head, 'S22D.png', collapse = ''),
+png(filename = paste0(png.head, 'S22C.png', collapse = ''),
     units = 'cm', width = 21, height = 3.5, res = 600)
 ggplot() + geom_logo( df$Seqs ) + theme_logo() + ylim(0,2) + theme(axis.title.x=element_blank(),
                                                                    axis.text.x=element_blank(),
@@ -79,9 +80,9 @@ dev.off()
 # whole sequence
 df = fread('D:/Promoter Design Data/Designs/25_ZEV_AR_nofilter_1sd_evolve-thresh_1.85_selected.txt')
 df$Seqs = substr(df$Seqs, 59, 307)
-png(filename = paste0(png.head, 'S22C.png', collapse = ''),
-    units = 'cm', width = 21, height = 3.5, res = 600)
-ggplot() + geom_logo( df$Seqs ) + theme_logo() + ylim(0,2) + theme(axis.title.x=element_blank(),
+png(filename = paste0(png.head, 'S22B.png', collapse = ''),
+    units = 'cm', width = 10, height = 3.5, res = 600)
+ggplot() + geom_logo( substr(df$Seqs, 237, 249) ) + theme_logo() + ylim(0,2) + theme(axis.title.x=element_blank(),
                                                                    axis.text.x=element_blank(),
                                                                    axis.ticks.x=element_blank())
 dev.off()
@@ -89,7 +90,7 @@ dev.off()
 # GCTA extensions
 df = fread('D:/Promoter Design Data/Designs/25_ZEV_AR_nofilter_1sd_evolve-thresh_1.85_selected.txt')
 df$Seqs = substr(df$Seqs, 100, 150)
-png(filename = paste0(png.head, 'S22E.png', collapse = ''),
+png(filename = paste0(png.head, 'S22D.png', collapse = ''),
     units = 'cm', width = 21, height = 3.5, res = 600)
 ggplot() + geom_logo( df$Seqs ) + theme_logo() + ylim(0,2) + theme(axis.title.x=element_blank(),
                                                                    axis.text.x=element_blank(),

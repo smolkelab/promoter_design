@@ -14,7 +14,9 @@ print(median(dat.tra$Strength))
 print(IQR(dat.tra$Strength))
 
 nbins = 40
-cols = colorRampPalette(c('darkred','gray','darkgreen'))(nbins)
+color.scale = c('darkmagenta', 'gray', 'darkturquoise')
+#color.scale = c('darkred', 'gray', 'darkgreen')
+cols = colorRampPalette(color.scale)(nbins)
 
 png(filename = 'D:/Promoter Design Data/Figures/PNGs/1C.png',
     units = 'cm', width = 8, height = 6.4, res = 600)

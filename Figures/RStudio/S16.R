@@ -15,26 +15,39 @@ for(i in 1:nrow(label.key)) {
 }
 
 dat.mer.use$Experiment = as.factor(dat.mer.use$Experiment)
-#dat.mer.use$Offscale = dat.mer.use$Means_B == max(dat.mer.use$Means_B)
-offscale.val = max(dat.mer.use$Means_B)
+dat.mer.use$Offscale = dat.mer.use$Means_B == max(dat.mer.use$Means_B)
+print('S16 Offscale')
+print(sum(dat.mer.use$Offscale))
+print(table(dat.mer.use$Experiment[dat.mer.use$Offscale]))
+dat.mer.use = dat.mer.use[!dat.mer.use$Offscale,]
+#offscale.val = max(dat.mer.use$Means_B)
 #offscale.val = 130
-dat.mer.use$Means_B[dat.mer.use$Means_B > offscale.val] = log10(offscale.val)
+#dat.mer.use$Means_B[dat.mer.use$Means_B > offscale.val] = log10(offscale.val)
 dat.mer.use$Experiment = factor(dat.mer.use$Experiment, 
                                    levels = levels(factor(dat.mer.use$Experiment))[c(12, 7, 11, 5, 8, 1, 3, 6, 9, 2, 4, 10)] )
+
+# for source data
+dat.source = data.table(Experiment=dat.mer.use$Experiment, Value=dat.mer.use$Means_B)
+dat.source$Experiment = sapply(dat.source$Experiment, function(x) gsub('\n', '-', x, fixed = TRUE))
+dat.source = dat.source[order(dat.source$Experiment, dat.source$Value),]
+write.csv(dat.source, 'D:/Promoter Design Data/Source Data/3B_S16.csv', quote = FALSE, row.names = FALSE)
+
+stat_box_data = function(y) { return(data.frame(y = max(y) + 10, label = length(y))) }
 
 png(filename = 'D:/Promoter Design Data/Figures/Final PNGs/S16.png',
     units = 'cm', width = 12, height = 8, res = 600)
 
-p = ggplot(dat.mer.use, aes(Experiment, 10^Means_B, color = Experiment)) + #, shape = Offscale)) + 
+p = ggplot(dat.mer.use, aes(Experiment, 10^Means_B)) + #, color = Experiment)) + #, shape = Offscale)) + 
   
   geom_boxplot(data = dat.mer.use, outlier.size = 0, outlier.shape = NA) + # coef = 0, 
   geom_jitter(data = dat.mer.use, width = 0.1, height = 0, size = 0.5) +
-  geom_hline(yintercept = 10^offscale.val, lty = 2) +
+  #geom_hline(yintercept = 10^offscale.val, lty = 2) +
+  stat_summary(fun.data = stat_box_data, geom = "text", hjust = 0.5, vjust = 0.9, size=3) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5, size = 8, face='bold')) +
   theme(axis.text = element_text(size=6), axis.title = element_text(size=8, face='bold'),
         legend.title = element_blank(), axis.title.x=element_blank(), legend.position = 'none') +
-  labs(y='Induced Promoter Activity\nAll Tested pZEV-Induced Designs')
+  labs(y='Induced Promoter Activity\nAll Tested pZEV-Induced Designs') + ylim(c(0,90))
 print(p)
 dev.off()
 

@@ -34,11 +34,16 @@ stat_box_data = function(y) { return(data.frame(y = min(y) - 0.02, label = lengt
 
 df$Pos = paste0('Site ', df$Pos)
 
+# Source Data
+dat.source = df[order(df$Pos, df$is.GCTA),]
+write.csv(dat.source, 'D:/Promoter Design Data/Source Data/5E.csv', quote = FALSE, row.names = FALSE)
+
 png(filename = paste0(png.head, '5E.png', collapse = ''),
-    units = 'cm', width = 10, height = 6, res = 600)
-ggplot(data = df, aes(x = is.GCTA, y = Score, color = is.GCTA)) + 
+    units = 'cm', width = 9, height = 6, res = 600)
+ggplot(data = df, aes(x = is.GCTA, y = Score)) + #, color = is.GCTA)) + 
   geom_boxplot(outlier.shape = NA) + theme_bw() +
-  stat_summary(fun.data = stat_box_data, geom = "text", hjust = 0.5, vjust = 0.9, size=3) +
+  # hide numbers in final version; add to Illustrator to make editable
+  #stat_summary(fun.data = stat_box_data, geom = "text", hjust = 0.5, vjust = 0.9, size=3) +
   facet_grid(. ~ Pos) +
   geom_jitter(width = 0.2, size = 0.5) + 
   theme(plot.title = element_text(hjust = 0.4, size = 8, face='bold')) +

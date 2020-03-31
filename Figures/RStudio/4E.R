@@ -1,6 +1,11 @@
-setwd('D:/Datasets/20190110 VYB (pBK71 prelim)/')
 setwd('D:/Promoter Design Data/Final Flow Validation FCS/Baseline')
 fns = dir()
+get.one.median = function(fn) {
+  x = extract.data(load.fromfilename(fn))
+  rats = log10(x[,10]/x[,8])
+  return(median(rats))
+}
+
 meds = sapply(fns, get.one.median)
 SEM.scale = 1/sqrt(3)
 meds.min = 10^(mean(meds)-sd(meds)*SEM.scale)
@@ -24,6 +29,16 @@ dat.zev.ar$`Design Type` = factor(dat.zev.ar$`Design Type`)
 dat.zev.bars = data.frame(Name=dat.zev.ar$Name, VYB_Mean_A=dat.zev.ar$VYB_Mean_A,
                           `Design Type`=dat.zev.ar$`Design Type`, bar.min.a=dat.zev.ar$bar.min.a,
                           bar.max.a=dat.zev.ar$bar.max.a)
+
+# Source Data
+dat.source = data.frame(Name=dat.zev.ar$Name,
+                        `Design Type`=dat.zev.ar$`Design Type`,
+                        R1_FALSE = dat.zev.ar$R1_FALSE, R2_FALSE = dat.zev.ar$R2_FALSE, R3_FALSE = dat.zev.ar$R3_FALSE)
+dat.background = data.frame(Name='Background', `Design Type` = 'Background',
+                            R1_FALSE = log10(allmeds[1]), R2_FALSE = log10(allmeds[1]), R3_FALSE = log10(allmeds[1]))
+dat.source = rbind(dat.source, dat.background)
+write.csv(dat.source, 'D:/Promoter Design Data/Source Data/4E_raw.csv', quote = FALSE, row.names = FALSE)
+
 
 dat.zev.bars.m = melt.for.jitter(dat.zev.ar, 'Uninduced')
 neg = data.frame(Name = 'Background', VYB_Mean_A=mean(meds), Design.Type='Background',
@@ -56,14 +71,16 @@ p = ggplot(dat.zev.bars, aes(x = Name, y = VYB_Mean_A, color = Design.Type, fill
   theme(plot.title = element_text(hjust = 0.4, size = 8, face='bold')) +
   theme(axis.text = element_text(size=6), axis.title = element_text(size=8, face='bold'),
         legend.text = element_text(size=6), legend.title = element_text(size=8, face='bold'),
-        legend.key.size = unit(0.2,'cm')) +
+        legend.key.size = unit(0.3,'cm')) +
   theme(axis.text.x=element_text(angle=270, hjust = 0),
         axis.ticks.x=element_blank()) +
   labs(x = '', y='Uninduced promoter activity \npZEV-AR designs', color = 'Design type', fill = 'Design type') + 
   scale_x_discrete(labels=xstr) +
   guides(colour = guide_legend(override.aes = list(alpha = 1))) +
   scale_fill_manual(values=cols) + 
-  scale_color_manual(values=cols)
+  scale_color_manual(values=cols) + 
+  theme(legend.margin=margin(0,0,0,0),
+        legend.box.margin=margin(-4,-4,-4,-4))
 
 q = p + geom_jitter(data=dat.zev.bars.m, aes(x=Name, y=value, color = Design.Type,
                                            ymin=NULL, ymax=NULL), width = 0.1, height = 0, size = 0.5)

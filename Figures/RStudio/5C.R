@@ -82,28 +82,8 @@ tf.cts = tf.cts[tf.cts >= 10]
 tf.cts[11] = other.cts
 names(tf.cts)[11] = 'Other'
 
-#png(filename = paste0(png.head, 'new_5B_pGPD-common_TFs.png', collapse = ''),
-#    units = 'cm', width = 8, height = 6, res = 600)
-#ggplot(data.frame(Name=names(tf.cts), Counts=tf.cts),
-#       aes(x='', y=Counts, fill=Name))+
-#  geom_bar(width = 1, stat = "identity") + coord_polar("y", start=0) + 
-#  theme_bw() + 
-#  theme(plot.title = element_text(hjust = 0.4, size = 8, face='bold')) +
-#  theme(axis.text = element_text(size=6), axis.title = element_text(size=8, face='bold'),
-#        legend.text = element_text(size=6), legend.title = element_text(size=8, face='bold'),
-#        legend.key.size = unit(0.2,'cm'))
-#dev.off()
-
-
 motifs.pgpd$Length = nchar(motifs.pgpd$Seq)
 motifs.pgpd$Total = motifs.pgpd$Strengths*motifs.pgpd$Length
-
-#ggplot(data = motifs.pgpd, aes(x = Length, y = Strengths, color = Category, fill = Category)) + 
-#  geom_point() + theme_bw() + 
-#  theme(plot.title = element_text(hjust = 0.4, size = 8, face='bold')) +
-#  theme(axis.text = element_text(size=6), axis.title = element_text(size=8, face='bold'),
-#        legend.text = element_text(size=6), legend.title = element_text(size=8, face='bold'),
-#        legend.key.size = unit(0.2,'cm'))
 
 sum(motifs.pgpd$Length)/(113*259)
 
@@ -114,21 +94,15 @@ motifs.tmp = data.table(motifs.tmp)
 x = apply(motifs.tmp, 2, sum)
 x = x[x > 0]
 
-# tmp = sort( apply(motifs.tmp[motifs.tmp$Yap1p,], 2, sum) ); tmp[tmp > 0]
-#[Hac1p, Swi5p, Ace2p]
-#[Ino2p, Ino4p]
-#Hap1p
-#[Gcn4p, Bas1p] <- [Yap1p, Yap3p]
-#[Rtg1p, Rtg3p]
-#Stp1p
-#Stb5p [<- Oaf1p, Haa1p]
-
 names.use = c('Hac1p', 'Ino2p', 'Hap1p', 'Gcn4p', 'Rtg1p', 'Stp1p', 'Stb5p')
 y = x[names(x) %in% names.use]
 #Stp1p Stb5p Hac1p Hap1p Ino2p Gcn4p Rtg1p 
 #22    36     4    11     2    16    17 
 names(y) = c('Stp1p', 'Stb5p/Oaf1p/Haa1p', 'Hac1p/Swi5p/Ace2p', 'Hap1p', 'Ino2/4p',
              'Gcn4p/Bas1p, Yap1/3p', 'Rtg1/3p')
+
+# Source Data
+write.csv(data.frame(Name=names(y), Counts=y), 'D:/Promoter Design Data/Source Data/5C.csv', quote = FALSE, row.names = FALSE)
 
 png(filename = paste0(png.head, '5C.png', collapse = ''),
     units = 'cm', width = 11, height = 5, res = 600)
@@ -140,11 +114,12 @@ ggplot(data.frame(Name=names(y), Counts=y),
   theme(plot.title = element_text(hjust = 0.4, size = 8, face='bold')) +
   theme(axis.text = element_text(size=6), axis.title = element_blank(),
         legend.text = element_text(size=6), legend.title = element_text(size=8, face='bold'),
-        legend.key.size = unit(0.2,'cm')) + 
+        legend.key.size = unit(0.3,'cm')) + 
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         panel.grid  = element_blank(), panel.border = element_blank()) + 
-  labs(fill = 'Transcription factor')
+  labs(fill = 'Transcription factor') + 
+  scale_fill_viridis_d(option='cividis')
 dev.off()
 
 # are TFs enriched? Compare against a random population.

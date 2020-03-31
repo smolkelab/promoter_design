@@ -28,44 +28,47 @@ for(i in 1:nrow(x.key)) {
   x[rows.to.change,]$GC_Filter = x.key$GC_Filter[i]
   x[rows.to.change,]$Merge = x.key$Merge[i]
 }
-
+stat_box_data = function(y) { return(data.frame(y = max(y) + 30, label = length(y))) }
 # With padding, all these sequences are 363 bases long - subtract parts of the alignments
 # that correspond to this padding. For GPD, subtract 50; for ZEV, subtract 116
 x$Score.adj = x$Score - 50 - 66*(x$Promoter == 'ZEV')
 
 png(filename = 'D:/Promoter Design Data/Figures/PNGs/S19_GPD.png',
-    units = 'cm', width = 10, height = 5, res = 600)
+    units = 'cm', width = 15, height = 5, res = 600)
 
 y = x[x$Promoter == 'GPD']
 p = ggplot(data = y, aes(x = Key, y = Score.adj, fill = Design)) + theme_bw() + geom_boxplot(outlier.size = 0.5) + 
+  stat_summary(fun.data = stat_box_data, geom = "text", hjust = 0.5, vjust = 0.5, size=3, angle=90) +
   theme(plot.title = element_text(hjust = 0.5, size = 8, face='bold')) +
   theme(axis.text = element_text(size=6), axis.title = element_text(size=8, face='bold')) +
   theme(legend.text = element_text(size=6), legend.title = element_text(size=8, face='bold')) +
-  labs(x = 'Experiment ID', y = 'Alignment Score\nGPD')
+  labs(x = 'Experiment ID', y = 'Alignment Score\nGPD') + ylim(100, 250)
 print(p)
 dev.off()
 
 png(filename = 'D:/Promoter Design Data/Figures/PNGs/S19_ZEV-I.png',
-    units = 'cm', width = 10, height = 5, res = 600)
+    units = 'cm', width = 15, height = 5, res = 600)
 
 y = x[x$Promoter == 'ZEV' & x$Target %in% c('Control', 'Induced')]
-p = ggplot(data = y, aes(x = Key, y = Score.adj, fill = Design)) + theme_bw() + geom_boxplot(outlier.size = 0.5) + 
+p = ggplot(data = y, aes(x = Key, y = Score.adj, fill = Design)) + theme_bw() + geom_boxplot(outlier.size = 0.5) +
+  stat_summary(fun.data = stat_box_data, geom = "text", hjust = 0.5, vjust = 0.5, size=3, angle=90) +
   theme(plot.title = element_text(hjust = 0.5, size = 8, face='bold')) +
   theme(axis.text = element_text(size=6), axis.title = element_text(size=8, face='bold')) +
   theme(legend.text = element_text(size=6), legend.title = element_text(size=8, face='bold')) +
-  labs(x = 'Experiment ID', y = 'Alignment Score\nZEV-Induced')
+  labs(x = 'Experiment ID', y = 'Alignment Score\nZEV-Induced')+ ylim(80, 300)
 print(p)
 dev.off()
 
 png(filename = 'D:/Promoter Design Data/Figures/PNGs/S19_ZEV-AR.png',
-    units = 'cm', width = 10, height = 5, res = 600)
+    units = 'cm', width = 15, height = 5, res = 600)
 
 y = x[x$Promoter == 'ZEV' & x$Target %in% c('Control', 'AR')]
 p = ggplot(data = y, aes(x = Key, y = Score.adj, fill = Design)) + theme_bw() + geom_boxplot(outlier.size = 0.5) + 
+  stat_summary(fun.data = stat_box_data, geom = "text", hjust = 0.5, vjust = 0.5, size=3, angle=90) +
   theme(plot.title = element_text(hjust = 0.5, size = 8, face='bold')) +
   theme(axis.text = element_text(size=6), axis.title = element_text(size=8, face='bold')) +
   theme(legend.text = element_text(size=6), legend.title = element_text(size=8, face='bold')) +
-  labs(x = 'Experiment ID', y = 'Alignment Score\nZEV-Activation Ratio')
+  labs(x = 'Experiment ID', y = 'Alignment Score\nZEV-Activation Ratio')+ ylim(80, 300)
 print(p)
 dev.off()
 

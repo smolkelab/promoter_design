@@ -1,51 +1,51 @@
-# given CSVs containing MLE scores and RMSDs vs. final means,
-# generate graphs showing how sensitive mean predictions are to hyperparameter choice.
+# Get the read tables for MiSeq and Nextseq, for both GPD and ZEV
+# Get the number of reads for each sequence; join tables as in original analysis;
+# plot # reads in both against each other.
+setwd('D:/Promoter Design Data/Read Table Comparison/')
 library(data.table)
-setwd('D:/Promoter Design Data/Mean Fitting Scores/')
 
-# manually pulled out of the fit logs
-# On instance #3, ~/facs-seq_test/[GPD or ZEV]/nextseq/fit_means.log and ~/facs-seq_test/design_testing/fit_means.log
-# GPD: global_ests: [{'fuzz': 0.06999999999999999, 'sigma': 0.038}, {'fuzz': 0.06999999999999999, 'sigma': 0.042}]
-# ZEV: global_ests: [{'fuzz': 0.062000000000000006, 'sigma': 0.046000000000000006}, {'fuzz': 0.054, 'sigma': 0.02600000000
-# 0000002}]
-# FS9: global_ests: [{'fuzz': 0.046000000000000006, 'sigma': 0.082}, {'fuzz': 0.054, 'sigma': 0.058}]
+miseq.GPD = 'filtered_read_table_miseq_GPD.txt'
+nextseq.GPD = 'final_merged_reads_nextseq_GPD.csv'
+miseq.ZEV = 'filtered_read_table_miseq_ZEV.txt'
+nextseq.ZEV = 'final_merged_reads_nextseq_ZEV.csv'
+key.len = 35
 
-contour.from.3col = function(dat, prefix, xpos, ypos, ...) {
-  z = reshape(dat, timevar='sigma', idvar='fuzz',direction='wide')
-  z = as.matrix(z)
-  rownames(z) = z[,1]
-  z = z[,2:ncol(z)]
-  colvals = as.numeric(sapply(strsplit(colnames(z),prefix), '[[', 2))
-  contour(z, x = as.numeric(rownames(z)), y = colvals, xlab = 'Fuzz', ylab = 'Sigma', ...)
-  points(xpos,ypos,pch=16, col = 'red')
+process.one.pair = function(miseq, nextseq, key.len) {
+  miseq.table = fread(miseq); miseq.table$V2 = NULL # drop groups
+  nextseq.table = fread(nextseq, header = TRUE); nextseq.table$V1 = NULL
+  # get keys in miseq (first 35 bp); drop repeated rows
+  miseq.table$keys = sapply(miseq.table$V1, function(x) substr(x, 1, key.len))
+  dups = table(miseq.table$keys); dups = dups[dups > 1]; dups = names(dups)
+  miseq.table = miseq.table[!miseq.table$keys %in% dups,]
+  # drop seqs
+  miseq.table$V1 = NULL; seqs = miseq.table$keys; miseq.table$keys = NULL
+  read.cts = apply(miseq.table, 1, sum)
+  miseq.table = data.table(seqs = seqs, miseq.cts = read.cts)  
+  
+  nextseq.table$keys = sapply(nextseq.table$Seq, function(x) substr(x, 1, key.len))
+  dups = table(nextseq.table$keys); dups = dups[dups > 1]; dups = names(dups)
+  nextseq.table = nextseq.table[!nextseq.table$keys %in% dups,]
+  nextseq.table$Seq = NULL; seqs = nextseq.table$keys; nextseq.table$keys = NULL
+  read.cts = apply(nextseq.table, 1, sum)
+  nextseq.table = data.table(seqs = seqs, nextseq.cts = read.cts)
+  setkey(miseq.table, seqs); setkey(nextseq.table, seqs)
+  ans = miseq.table[nextseq.table, on = 'seqs', nomatch = 0]
+  return(ans)
 }
 
-wrapper.2plot = function(fn, maintxt = '', xpos,ypos) {
-  x = fread(fn)
-  y = x; y$score = NULL
-  y2 = x; y2$rmsd = NULL
-  contour.from.3col(dat=y, prefix = 'rmsd.', xpos=xpos,ypos=ypos,
-                    main = paste0(maintxt, 'RMSD', collapse = ''))
-  contour.from.3col(dat=y2, prefix = 'score.', xpos=xpos,ypos=ypos,
-                    main = paste0(maintxt, 'Score', collapse = ''))
-}
-
+dat.GPD = process.one.pair(miseq.GPD, nextseq.GPD, key.len)
+dat.ZEV = process.one.pair(miseq.ZEV, nextseq.ZEV, key.len)
 
 png(filename = 'D:/Promoter Design Data/Figures/PNGs/S29.png',
-  units = 'in', res = 144, width = 7.5, height = 5)
-par(mfrow = c(3,4), mar = c(4.1, 4, 3.1, 1.1) )
-#wrapper.2plot('score_A_GPD.txt', maintxt='pGPD-A: ',xpos = 0.07, ypos = 0.038)
-#wrapper.2plot('score_B_GPD.txt', maintxt='pGPD-B: ',xpos = 0.07, ypos = 0.042)
-#wrapper.2plot('score_A_ZEV.txt', maintxt='pZEV-Uninduced: ', xpos = 0.062, ypos = 0.046)
-#wrapper.2plot('score_B_ZEV.txt', maintxt='pZEV-Induced: ' ,xpos = 0.054, ypos = 0.026)
-#wrapper.2plot('score_A_validation.txt', maintxt='Validation-Uninduced: ', xpos = 0.046, ypos = 0.082)
-#wrapper.2plot('score_B_validation.txt', maintxt='Validation-Induced: ' ,xpos = 0.054, ypos = 0.058)
-wrapper.2plot('score_A_GPD.txt', maintxt='A: ',xpos = 0.07, ypos = 0.038)
-wrapper.2plot('score_B_GPD.txt', maintxt='B: ',xpos = 0.07, ypos = 0.042)
-wrapper.2plot('score_A_ZEV.txt', maintxt='Uninduced: ', xpos = 0.062, ypos = 0.046)
-wrapper.2plot('score_B_ZEV.txt', maintxt='Induced: ' ,xpos = 0.054, ypos = 0.026)
-wrapper.2plot('score_A_validation.txt', maintxt='Uninduced: ', xpos = 0.046, ypos = 0.082)
-wrapper.2plot('score_B_validation.txt', maintxt='Induced: ' ,xpos = 0.054, ypos = 0.058)
+    units = 'in', res = 144, width = 7, height = 5.25)
+par(mfrow = c(2,3))
+hist(log10(dat.GPD$miseq.cts), breaks = 100, main = '', xlab = 'Read Counts (log10) - GPD MiSeq', xlim = c(0,4))
+hist(log10(dat.GPD$nextseq.cts), breaks = 100, main = '', xlab = 'Read Counts (log10) - GPD NextSeq', xlim = c(0,4))
+plot(log10(dat.GPD$miseq.cts), log10(dat.GPD$nextseq.cts), pch = '.', main = '', xlab = 'Read Counts (log10) - GPD Miseq', ylab = 'Read Counts (log10) - GPD Nextseq')
+hist(log10(dat.ZEV$miseq.cts), breaks = 100, main = '', xlab = 'Read Counts (log10) - ZEV MiSeq', xlim = c(0,4))
+hist(log10(dat.ZEV$nextseq.cts), breaks = 100, main = '', xlab = 'Read Counts (log10) - ZEV NextSeq', xlim = c(0,4))
+plot(log10(dat.ZEV$miseq.cts), log10(dat.ZEV$nextseq.cts), pch = '.', main = '', xlab = 'Read Counts (log10) - ZEV Miseq', ylab = 'Read Counts (log10) - ZEV Nextseq')
 dev.off()
+
 
 

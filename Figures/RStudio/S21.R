@@ -43,9 +43,6 @@ dat$VYB_AR = 10^(dat$VYB_AR)
 dat$trusted_a = dat$Scale_A == 0
 dat$trusted_b = dat$Scale_B == 0
 
-png(filename = 'D:/Promoter Design Data/Figures/PNGs/S21.png',
-    units = 'cm', width = w, height = h, res = 600)
-
 dat.gpd = dat[dat$Name %in% c('GPD', 'TEF', 'CYC1') | 
                 dat$Experiment.designed %in% c(22,23,24,28),]
 dat.gpd = dat.gpd[(dat.gpd$trusted_a & dat.gpd$trusted_b) | is.na(dat.gpd$Experiment.designed),]
@@ -72,9 +69,20 @@ dat.gpd.m = rbind(dat.gpd.me, dat.gpd.mc)
 
 #write.csv(dat.gpd, 'C:/Users/Ben/Dropbox/Lab/Lab Deliverables/Promoter Manuscript/single_seqs_pGPD.csv')
 xstr = c(paste0('pGPD-', 1:25), 'pCYC1', 'pTEF1', 'pGPD')
-p = ggplot(dat.gpd, aes(Name, VYB_Mean_A, color = `Design Type`, ymin = bar.min.a, ymax = bar.max.a)) + 
+
+# for Source Data
+dat.source = dat.gpd[order(dat.gpd$Name),]
+dat.source = data.table(R1_TRUE = dat.source$R1_TRUE, R2_TRUE = dat.source$R2_TRUE, R3_TRUE = dat.source$R3_TRUE,
+                        R1_FALSE = dat.source$R1_FALSE, R2_FALSE = dat.source$R2_FALSE, R3_FALSE = dat.source$R3_FALSE, Name = xstr)
+write.csv(dat.source, 'D:/Promoter Design Data/Source Data/4B_S21.csv', quote = FALSE, row.names = FALSE)
+
+png(filename = 'D:/Promoter Design Data/Figures/PNGs/S21.png',
+    units = 'cm', width = w, height = h, res = 600)
+
+p = ggplot(dat.gpd, aes(Name, VYB_Mean_A, color = `Design Type`, fill = `Design Type`, ymin = bar.min.a, ymax = bar.max.a)) + 
   #geom_point(size = 1, stroke = 0) + 
-  geom_errorbar(size = 0.3) + theme_bw() + 
+  geom_col(alpha = 0.5, width = 0.6) +
+  geom_errorbar(width = 0.6) + theme_bw() + 
   theme(plot.title = element_text(hjust = 0.4, size = 10, face='bold')) +
   theme(axis.text = element_text(size=6), axis.title = element_text(size=8, face='bold'),
         legend.text = element_text(size=6), legend.title = element_text(size=8, face='bold'),
@@ -82,7 +90,8 @@ p = ggplot(dat.gpd, aes(Name, VYB_Mean_A, color = `Design Type`, ymin = bar.min.
   theme(axis.text.x=element_text(angle=315),
         axis.ticks.x=element_blank()) +
   scale_x_discrete(labels=xstr) +
-  labs(x = '', y='Promoter Activity\nAll Tested pGPD Designs', color = 'Design Type')
+  labs(x = '', y='Promoter Activity\nAll Tested pGPD Designs', color = 'Design Type') +
+  guides(colour = guide_legend(override.aes = list(alpha = 1)))
 q = p + geom_jitter(data=dat.gpd.m, aes(x=Name, y=value, color = `Design Type`,
                                         ymin=NULL, ymax=NULL), width = 0.1, height = 0, size = 0.5)
 print(q)

@@ -9,6 +9,9 @@ fns = 'pGPD Library Panel/Data/BK2018-03-22CSY3-12_0nM_1.0001.fcs'
 
 files.dat = lapply(lapply(fns, load.fromfilename), extract.data, vals = c('mCherry','GFP'))
 
+#color.scale = c('darkred', 'gray', 'darkgreen')
+color.scale = c('darkmagenta', 'gray', 'darkturquoise')
+
 # stack by replicate
 mC = list()
 gfp = list()
@@ -46,7 +49,7 @@ png(filename = 'D:/Promoter Design Data/Figures/PNGs/1B - scatter.png',
 p = ggplot(files.dat, aes(x=mCherry, y=GFP, color=Strength)) + geom_point(alpha = 0.75, pch = '.', stroke = NA) + theme_bw() + 
   theme(plot.title = element_text(hjust = 0.4, size = 8, face='bold')) +
   theme(axis.text = element_text(size=6), axis.title = element_text(size=8, face='bold')) + theme(legend.position = 'none') +
-  scale_colour_gradient2(low = 'darkred', mid = 'gray', high = 'darkgreen') + 
+  scale_colour_gradient2(low = color.scale[1], mid = color.scale[2], high = color.scale[3]) + 
   #labs(x = 'mCherry (log10)', y = 'GFP (log10)', title = 'Two-Color Fluorescence:\nExample Library') +
   xlim(0,4) + ylim(-1,5) + 
   geom_abline(slope = 1, intercept = bin.edges, lty = 2, lwd = 0.5, alpha = 0.5) + 
@@ -68,8 +71,7 @@ fits = fitdistr(dat.example$Strength, 'normal')$estimate
 points.test = data.frame(x = points.test, y = scale.fac.gauss*dnorm(points.test, mean = fits[1], sd = fits[2]))
 
 breaks = c(-1.5,bin.edges,0.9)
-cols = colorRampPalette(c('darkred','gray','darkgreen'))(12)
-
+cols = colorRampPalette(color.scale)(12)
 
 png(filename = 'D:/Promoter Design Data/Figures/PNGs/1B - histogram.png',
     units = 'cm', width = 4, height = 4, res = 600)
